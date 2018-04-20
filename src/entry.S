@@ -5,6 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -94,7 +95,7 @@ entry_exc_error:        SAVE_STATE
 
 EXCEPTION               0x0,    0
 EXCEPTION               0x1,    0
-TASKGATE
+EXCEPTION               0x2,    0
 EXCEPTION               0x3,    3
 EXCEPTION               0x4,    3
 EXCEPTION               0x5,    0
@@ -186,6 +187,7 @@ entry_ipi:              push    $0
  */
 ret_from_interrupt:     testb   $3, OFS_CS (%REG(bx))
                         jnz     ret_user_iret
+                        call    chk_kern_preempt
                         LOAD_GPR
                         add     $(6 * SIZE), %REG(sp)
                         RET_USER_EXC

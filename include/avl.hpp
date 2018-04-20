@@ -22,13 +22,20 @@
 
 class Avl
 {
+    public:
+        enum State { REMOVED = 1, KIM = 2, STALE = 3 };
+
     protected:
         Avl *lnk[2];
 
-        explicit Avl() : bal (2) { lnk[0] = lnk[1] = nullptr; }
+        explicit Avl() : bal (2), sta(0) { lnk[0] = lnk[1] = nullptr; }
+
+        bool removed() const { return sta == REMOVED; }
+        bool invalid() const { return sta == STALE || sta == KIM; }
 
     private:
-        unsigned bal;
+        unsigned short bal;
+        unsigned short sta;
 
         bool balanced() const { return bal == 2; }
 
@@ -37,5 +44,5 @@ class Avl
 
     public:
         template <typename> static bool insert (Avl **, Avl *);
-        template <typename> static bool remove (Avl **, Avl *);
+        template <typename> static bool remove (Avl **, Avl *, State = REMOVED);
 };

@@ -30,11 +30,24 @@
 .globl                  __start_bsp
 
 /*
- * Multiboot Header
+ * Multiboot v1 Header
  */
-__boot_header:          .long   0x1badb002
+__boot_header_mbi1:     .long   0x1badb002
                         .long   0x0
                         .long  -0x1badb002
+/*
+ * Multiboot v2 Header
+ */
+                        .long   0x0            /* align to 8 byte for mbi2 */
+__boot_header_mbi2_s:   .long   0xe85250d6
+                        .long   0x0
+                        .long   (__boot_header_mbi2_e - __boot_header_mbi2_s)
+                        .long  -(0xe85250d6 + (__boot_header_mbi2_e - __boot_header_mbi2_s))
+                        /* end tag */
+                        .word   0x0 /* type */
+                        .word   0x0 /* flags */
+                        .long   0x8 /* size */
+__boot_header_mbi2_e:
 
 /*
  * Global Descriptor Table (GDT)
@@ -69,11 +82,13 @@ __boot_gdt__:
 
 .macro                  INIT_PAGING
 #ifdef __x86_64__
+                        mov     %eax, %edi /* backup - used by multiboot */
                         mov     $0xc0000080, %ecx
                         rdmsr
-                        or      $0x101, %eax
+                        or      $0x901, %eax
                         wrmsr
                         mov     $0x6b8, %edx
+                        mov     %edi, %eax /* restore - used by multiboot */
 #else
                         mov     $0x698, %edx
 #endif
@@ -103,7 +118,7 @@ __gdt_desc:             .word   __boot_gdt__ - __boot_gdt - 1
 
 __start_bsp:            mov     $(__start_bsp - __start_ap), %ecx
                         mov     $__start_ap, %esi
-                        mov     $0x1000, %edi
+                        mov     $AP_BOOT_PADDR, %edi
                         rep     movsb
 #ifdef __x86_64__
                         mov     $(LVL3L + 0x27), %ecx
@@ -147,7 +162,12 @@ __start_all:            INIT_STATE
                         test    %REG(bx), %REG(bx)
                         je      2f
 
-                        mov     %REG(bx), %ARG_1
+#ifdef __x86_64__
+                        mov     %REG(ax), %REG(di)
+                        mov     %REG(bx), %REG(si)
+#else
+                        mov     %REG(bx), %edx
+#endif
                         call    init
                         jmp     3f
 

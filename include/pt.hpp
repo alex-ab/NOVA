@@ -5,6 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -25,10 +26,12 @@
 
 class Ec;
 
-class Pt : public Kobject
+class Pt : public Kobject, public Refcount
 {
     private:
         static Slab_cache cache;
+
+        static void free (Rcu_elem * p);
 
     public:
         Refptr<Ec> const ec;
@@ -42,8 +45,8 @@ class Pt : public Kobject
         inline void set_id (mword i) { id = i; }
 
         ALWAYS_INLINE
-        static inline void *operator new (size_t) { return cache.alloc(); }
+        static inline void *operator new (size_t, Quota &quota) { return cache.alloc(quota); }
 
         ALWAYS_INLINE
-        static inline void operator delete (void *ptr) { cache.free (ptr); }
+        static inline void destroy(Pt *obj, Quota &quota) { obj->~Pt(); cache.free (obj, quota); }
 };

@@ -26,7 +26,7 @@
 class Ept : public Pte<Ept, uint64, 4, 9, false>
 {
     public:
-        static mword ord;
+        static mword ord, ept_type;
 
         enum
         {
@@ -56,7 +56,7 @@ class Ept : public Pte<Ept, uint64, 4, 9, false>
             struct { uint64 eptp, rsvd; } desc = { addr() | (max() - 1) << 3 | 6, 0 };
 
             bool ret;
-            asm volatile ("invept %1, %2; seta %0" : "=q" (ret) : "m" (desc), "r" (1UL) : "cc", "memory");
+            asm volatile ("invept %1, %2; seta %0" : "=q" (ret) : "m" (desc), "r" (ept_type) : "cc", "memory");
             assert (ret);
         }
 };

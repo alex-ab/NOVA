@@ -6,6 +6,7 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
+ * Copyright (C) 2014-2015 Alexander Boettcher, Genode Labs GmbH.
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -48,6 +49,12 @@ class Sys_create_pd : public Sys_regs
 
         ALWAYS_INLINE
         inline Crd crd() const { return Crd (ARG_3); }
+
+        ALWAYS_INLINE
+        inline unsigned long limit_lower() const { return ARG_4 & (~0UL >> (sizeof(mword) * 4)); }
+
+        ALWAYS_INLINE
+        inline unsigned long limit_upper() const { return ARG_4 >> (sizeof(mword) * 4); }
 };
 
 class Sys_create_ec : public Sys_regs
@@ -118,6 +125,9 @@ class Sys_create_sm : public Sys_regs
 
         ALWAYS_INLINE
         inline mword cnt() const { return ARG_3; }
+
+        ALWAYS_INLINE
+        inline unsigned long sm() const { return ARG_4; }
 };
 
 class Sys_revoke : public Sys_regs
@@ -125,6 +135,23 @@ class Sys_revoke : public Sys_regs
     public:
         ALWAYS_INLINE
         inline Crd crd() const { return Crd (ARG_2); }
+
+        ALWAYS_INLINE
+        inline bool self() const { return flags() & 0x1; }
+
+        ALWAYS_INLINE
+        inline bool remote() const { return flags() & 0x2; }
+
+        ALWAYS_INLINE
+        inline bool keep() const { return flags() & 0x4; }
+
+        ALWAYS_INLINE
+        inline mword pd() const { return ARG_3; }
+
+        ALWAYS_INLINE
+        inline mword sm() const { return ARG_1 >> 8; }
+
+        inline void rem(Pd * p) { ARG_3 = reinterpret_cast<mword>(p); }
 };
 
 class Sys_lookup : public Sys_regs
@@ -132,6 +159,22 @@ class Sys_lookup : public Sys_regs
     public:
         ALWAYS_INLINE
         inline Crd & crd() { return reinterpret_cast<Crd &>(ARG_2); }
+
+        ALWAYS_INLINE
+        inline mword pd_snd() const { return ARG_1 >> 8; }
+
+        ALWAYS_INLINE
+        inline mword pd_dst() const { return ARG_3; }
+};
+
+class Sys_reply : public Sys_regs
+{
+    public:
+        ALWAYS_INLINE
+        inline unsigned long sm() const { return ARG_1 >> 8; }
+
+        ALWAYS_INLINE
+        inline mword sm_kern() const { return ARG_1; }
 };
 
 class Sys_ec_ctrl : public Sys_regs
@@ -139,6 +182,15 @@ class Sys_ec_ctrl : public Sys_regs
     public:
         ALWAYS_INLINE
         inline unsigned long ec() const { return ARG_1 >> 8; }
+
+        ALWAYS_INLINE
+        inline unsigned long cnt() const { return ARG_2; }
+
+        ALWAYS_INLINE
+        inline unsigned op() const { return flags() & 0x3; }
+
+        ALWAYS_INLINE
+        inline bool state() const { return ARG_2 == 1; }
 };
 
 class Sys_sc_ctrl : public Sys_regs
@@ -181,6 +233,29 @@ class Sys_sm_ctrl : public Sys_regs
         inline uint64 time() const { return static_cast<uint64>(ARG_2) << 32 | ARG_3; }
 };
 
+class Sys_pd_ctrl : public Sys_regs
+{
+    public:
+        ALWAYS_INLINE
+        inline unsigned long src() const { return ARG_1 >> 8; }
+
+        ALWAYS_INLINE
+        inline unsigned dbg() const { return flags() & 0x2; }
+
+        ALWAYS_INLINE
+        inline unsigned long dst() const { return ARG_2; }
+
+        ALWAYS_INLINE
+        inline unsigned long tra() const { return ARG_3; }
+
+        ALWAYS_INLINE
+        inline void dump (mword l, mword u)
+        {
+            ARG_2 = l;
+            ARG_3 = u;
+        }
+};
+
 class Sys_assign_pci : public Sys_regs
 {
     public:
@@ -205,6 +280,9 @@ class Sys_assign_gsi : public Sys_regs
 
         ALWAYS_INLINE
         inline unsigned cpu() const { return static_cast<unsigned>(ARG_3); }
+
+        ALWAYS_INLINE
+        inline mword si() const { return ARG_4; }
 
         ALWAYS_INLINE
         inline void set_msi (uint64 val)

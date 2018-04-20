@@ -22,6 +22,7 @@
 #include "console_serial.hpp"
 #include "hpt.hpp"
 #include "x86.hpp"
+#include "pd.hpp"
 
 INIT_PRIORITY (PRIO_CONSOLE) Console_serial Console_serial::con;
 
@@ -30,7 +31,7 @@ Console_serial::Console_serial()
     if (!Cmdline::serial)
         return;
 
-    char *mem = static_cast<char *>(Hpt::remap (0));
+    char *mem = static_cast<char *>(Hpt::remap (Pd::kern.quota, 0));
     if (!(base = *reinterpret_cast<uint16 *>(mem + 0x400)) &&
         !(base = *reinterpret_cast<uint16 *>(mem + 0x402)))
         return;

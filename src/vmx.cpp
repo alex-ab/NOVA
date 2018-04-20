@@ -31,6 +31,7 @@
 #include "util.hpp"
 #include "vmx.hpp"
 #include "x86.hpp"
+#include "pd.hpp"
 
 Vmcs *              Vmcs::current;
 unsigned            Vmcs::vpid_ctr;
@@ -74,7 +75,7 @@ Vmcs::Vmcs (mword esp, mword bmp, mword cr3, uint64 eptp) : rev (basic.revision)
 
 #ifdef __x86_64__
     write (HOST_EFER, Msr::read<uint64>(Msr::IA32_EFER));
-    exi |= EXI_LOAD_EFER | EXI_HOST_64;
+    exi |= EXI_SAVE_EFER | EXI_LOAD_EFER | EXI_HOST_64;
     ent |= ENT_LOAD_EFER;
 #endif
 
@@ -120,10 +121,14 @@ void Vmcs::init()
         ctrl_cpu[1].val = Msr::read<uint64>(Msr::IA32_VMX_CTRL_CPU1);
     if (has_ept() || has_vpid())
         ept_vpid.val = Msr::read<uint64>(Msr::IA32_VMX_EPT_VPID);
-    if (has_ept())
+    if (has_ept()){
+        Ept::ept_type = ept_vpid.val & 1ul << 25 ? 1ul : 2ul;        
         Ept::ord = min (Ept::ord, static_cast<mword>(bit_scan_reverse (static_cast<mword>(ept_vpid.super)) + 2) * Ept::bpl() - 1);
+    }
     if (has_urg())
         fix_cr0_set &= ~(Cpu::CR0_PG | Cpu::CR0_PE);
+
+    fix_cr0_clr |= Cpu::CR0_CD | Cpu::CR0_NW;
 
     ctrl_cpu[0].set |= CPU_HLT | CPU_IO | CPU_IO_BITMAP | CPU_SECONDARY;
     ctrl_cpu[1].set |= CPU_VPID | CPU_URG;
@@ -136,7 +141,7 @@ void Vmcs::init()
     set_cr0 ((get_cr0() & ~fix_cr0_clr) | fix_cr0_set);
     set_cr4 ((get_cr4() & ~fix_cr4_clr) | fix_cr4_set);
 
-    Vmcs *root = new Vmcs;
+    Vmcs *root = new (Pd::kern.quota) Vmcs;
 
     trace (TRACE_VMX, "VMCS:%#010lx REV:%#x EPT:%d URG:%d VNMI:%d VPID:%d", Buddy::ptr_to_phys (root), basic.revision, has_ept(), has_urg(), has_vnmi(), has_vpid());
 }

@@ -5,6 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -53,7 +54,7 @@ class Sys_regs
                 mword   REG(cx);
                 mword   REG(ax);
             };
-            mword gpr[];
+            mword gpr[(sizeof(mword) * 8 == 32) ? 8 : 16];
         };
 
         enum Status
@@ -67,16 +68,29 @@ class Sys_regs
             BAD_FTR,
             BAD_CPU,
             BAD_DEV,
+            QUO_OOM,
         };
 
         ALWAYS_INLINE
         inline unsigned flags() const { return ARG_1 >> 4 & 0xf; }
 
         ALWAYS_INLINE
-        inline void set_status (Status status) { ARG_1 = status; }
+        inline uint8 status() { return ARG_1 & 0xffu; }
+
+        ALWAYS_INLINE
+        inline void set_status (Status s, bool c = true)
+        {
+            if (c)
+                ARG_1 = s;
+            else
+                ARG_1 = (ARG_1 & ~0xfful) | s;
+        }
 
         ALWAYS_INLINE
         inline void set_pt (mword pt) { ARG_1 = pt; }
+
+        ALWAYS_INLINE
+        inline void set_pt (mword pt, mword pt2, mword s) { ARG_1 = pt; ARG_2 = pt2; ARG_3 = s; }
 
         ALWAYS_INLINE
         inline void set_ip (mword ip) { ARG_IP = ip; }

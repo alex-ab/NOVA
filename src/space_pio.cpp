@@ -25,23 +25,23 @@ Space_mem *Space_pio::space_mem()
     return static_cast<Pd *>(this);
 }
 
-Paddr Space_pio::walk (bool host, mword idx)
+Paddr Space_pio::walk (Quota &quota, bool host, mword idx)
 {
     Paddr &bmp = host ? hbmp : gbmp;
 
     if (!bmp) {
-        bmp = Buddy::ptr_to_phys (Buddy::allocator.alloc (1, Buddy::FILL_1));
+        bmp = Buddy::ptr_to_phys (Buddy::allocator.alloc (1, quota, Buddy::FILL_1));
 
         if (host)
-            space_mem()->insert (SPC_LOCAL_IOP, 1, Hpt::HPT_NX | Hpt::HPT_D | Hpt::HPT_A | Hpt::HPT_W | Hpt::HPT_P, bmp);
+            space_mem()->insert (quota, SPC_LOCAL_IOP, 1, Hpt::HPT_NX | Hpt::HPT_D | Hpt::HPT_A | Hpt::HPT_W | Hpt::HPT_P, bmp);
     }
 
     return bmp | (idx_to_virt (idx) & (2 * PAGE_SIZE - 1));
 }
 
-void Space_pio::update (bool host, mword idx, mword attr)
+void Space_pio::update (Quota &quota, bool host, mword idx, mword attr)
 {
-    mword *m = static_cast<mword *>(Buddy::phys_to_ptr (walk (host, idx)));
+    mword *m = static_cast<mword *>(Buddy::phys_to_ptr (walk (quota, host, idx)));
 
     if (attr)
         Atomic::clr_mask (*m, idx_to_mask (idx));
@@ -49,7 +49,7 @@ void Space_pio::update (bool host, mword idx, mword attr)
         Atomic::set_mask (*m, idx_to_mask (idx));
 }
 
-void Space_pio::update (Mdb *mdb, mword r)
+bool Space_pio::update (Quota &quota, Mdb *mdb, mword r)
 {
     assert (this == mdb->space && this != &Pd::kern);
 
@@ -57,16 +57,18 @@ void Space_pio::update (Mdb *mdb, mword r)
 
     if (mdb->node_sub & 2)
         for (unsigned long i = 0; i < (1UL << mdb->node_order); i++)
-            update (false, mdb->node_base + i, mdb->node_attr & ~r);
+            update (quota, false, mdb->node_base + i, mdb->node_attr & ~r);
 
     for (unsigned long i = 0; i < (1UL << mdb->node_order); i++)
-        update (true, mdb->node_base + i, mdb->node_attr & ~r);
+        update (quota, true, mdb->node_base + i, mdb->node_attr & ~r);
+
+    return false;
 }
 
 void Space_pio::page_fault (mword addr, mword error)
 {
     assert (!(error & Hpt::ERR_W));
 
-    if (!Pd::current->Space_mem::loc[Cpu::id].sync_from (Pd::current->Space_mem::hpt, addr, CPU_LOCAL))
-        Pd::current->Space_mem::replace (addr, reinterpret_cast<Paddr>(&FRAME_1) | Hpt::HPT_NX | Hpt::HPT_A | Hpt::HPT_P);
+    if (!Pd::current->Space_mem::loc[Cpu::id].sync_from (Pd::current->quota, Pd::current->Space_mem::hpt, addr, CPU_LOCAL))
+        Pd::current->Space_mem::replace (Pd::current->quota, addr, reinterpret_cast<Paddr>(&FRAME_1) | Hpt::HPT_NX | Hpt::HPT_A | Hpt::HPT_P);
 }

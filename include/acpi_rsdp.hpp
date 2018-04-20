@@ -59,5 +59,5 @@ class Acpi_rsdp
 
     public:
         INIT
-        static void parse();
+        static void parse(mword = 0);
 };

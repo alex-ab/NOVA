@@ -41,7 +41,10 @@ class Hip_mem
     public:
         enum {
             HYPERVISOR  = -1u,
-            MB_MODULE   = -2u
+            MB_MODULE   = -2u,
+            ACPI_RSDT   = -3u,
+            ACPI_XSDT   = -4u,
+            MB2_FB      = -5u
         };
 
         uint64  addr;
@@ -110,13 +113,25 @@ class Hip
         }
 
         INIT
-        static void build (mword);
+        static void build (mword, mword);
 
         INIT
-        static void add_mem (Hip_mem *&, mword, size_t);
+        static void build_mbi1 (Hip_mem *&, mword);
 
         INIT
-        static void add_mod (Hip_mem *&, mword, size_t);
+        static void build_mbi2 (Hip_mem *&, mword);
+        
+        template <typename T>
+        INIT
+        static void add_fb (Hip_mem *&, T const *);
+
+        template <typename T>
+        INIT
+        static void add_mem (Hip_mem *&, T const *);
+
+        template <typename T>
+        INIT
+        static void add_mod (Hip_mem *&, T const *, uint32);
 
         INIT
         static void add_mhv (Hip_mem *&);

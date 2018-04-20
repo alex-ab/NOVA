@@ -36,7 +36,7 @@ struct Pci::quirk_map Pci::map[] INITDATA =
 
 Pci::Pci (unsigned r, unsigned l) : List<Pci> (list), reg_base (hwdev_addr -= PAGE_SIZE), rid (static_cast<uint16>(r)), lev (static_cast<uint16>(l))
 {
-    Pd::kern.Space_mem::insert (reg_base, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, cfg_base + (rid << PAGE_BITS));
+    Pd::kern.Space_mem::insert (Pd::kern.quota, reg_base, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, cfg_base + (rid << PAGE_BITS));
 
     for (unsigned i = 0; i < sizeof map / sizeof *map; i++)
         if (read<uint16>(REG_VID) == map[i].vid && read<uint16>(REG_DID) == map[i].did)
@@ -47,10 +47,10 @@ void Pci::init (unsigned b, unsigned l)
 {
     for (unsigned r = b << 8; r < (b + 1) << 8; r++) {
 
-        if (*static_cast<uint32 *>(Hpt::remap (cfg_base + (r << PAGE_BITS))) == ~0U)
+        if (*static_cast<uint32 *>(Hpt::remap (Pd::kern.quota, cfg_base + (r << PAGE_BITS))) == ~0U)
             continue;
 
-        Pci *p = new Pci (r, l);
+        Pci *p = new (Pd::kern.quota) Pci (r, l);
 
         unsigned h = p->read<uint8>(REG_HDR);
 

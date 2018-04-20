@@ -30,7 +30,7 @@ class Cpuset
 
     public:
         ALWAYS_INLINE
-        inline explicit Cpuset() : val (0) {}
+        inline explicit Cpuset(mword v) : val (v) {}
 
         ALWAYS_INLINE
         inline bool chk (unsigned cpu) const { return val & 1UL << cpu; }

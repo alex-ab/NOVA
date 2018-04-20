@@ -27,6 +27,9 @@
 #include "hpt.hpp"
 #include "idt.hpp"
 #include "keyb.hpp"
+#include "pd.hpp"
+#include "multiboot.hpp"
+#include "multiboot2.hpp"
 
 extern "C" INIT
 mword kern_ptab_setup()
@@ -34,23 +37,23 @@ mword kern_ptab_setup()
     Hptp hpt;
 
     // Allocate and map cpu page
-    hpt.update (CPU_LOCAL_DATA, 0,
-                Buddy::ptr_to_phys (Buddy::allocator.alloc (0, Buddy::FILL_0)),
+    hpt.update (Pd::kern.quota, CPU_LOCAL_DATA, 0,
+                Buddy::ptr_to_phys (Buddy::allocator.alloc (0, Pd::kern.quota, Buddy::FILL_0)),
                 Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P);
 
     // Allocate and map kernel stack
-    hpt.update (CPU_LOCAL_STCK, 0,
-                Buddy::ptr_to_phys (Buddy::allocator.alloc (0, Buddy::FILL_0)),
+    hpt.update (Pd::kern.quota, CPU_LOCAL_STCK, 0,
+                Buddy::ptr_to_phys (Buddy::allocator.alloc (0, Pd::kern.quota, Buddy::FILL_0)),
                 Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P);
 
     // Sync kernel code and data
-    hpt.sync_master_range (LINK_ADDR, CPU_LOCAL);
+    hpt.sync_master_range (Pd::kern.quota, LINK_ADDR, CPU_LOCAL);
 
     return hpt.addr();
 }
 
-extern "C" INIT REGPARM (1)
-void init (mword mbi)
+extern "C" INIT REGPARM (2)
+void init (mword magic, mword mbi)
 {
     // Setup 0-page and 1-page
     memset (reinterpret_cast<void *>(&PAGE_0),  0,  PAGE_SIZE);
@@ -58,12 +61,12 @@ void init (mword mbi)
 
     for (void (**func)() = &CTORS_G; func != &CTORS_E; (*func++)()) ;
 
-    Hip::build (mbi);
+    Hip::build (magic, mbi);
 
     for (void (**func)() = &CTORS_C; func != &CTORS_G; (*func++)()) ;
 
     // Now we're ready to talk to the world
-    Console::print ("\fNOVA Microhypervisor v%d-%07lx (%s): %s %s [%s]\n", CFG_VER, reinterpret_cast<mword>(&GIT_VER), ARCH, __DATE__, __TIME__, COMPILER_STRING);
+    Console::print ("\fNOVA Microhypervisor v%d-%07lx (%s): %s %s [%s] [%s]\n", CFG_VER, reinterpret_cast<mword>(&GIT_VER), ARCH, __DATE__, __TIME__, COMPILER_STRING, magic == Multiboot::MAGIC ? "MBI" : (magic==Multiboot2::MAGIC ? "MBI2" : ""));
 
     Idt::build();
     Gsi::setup();

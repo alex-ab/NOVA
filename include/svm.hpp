@@ -22,6 +22,8 @@
 
 #include "utcb.hpp"
 
+class Quota;
+
 class Vmcb
 {
     public:
@@ -112,12 +114,20 @@ class Vmcb
                                             CPU_SKINIT;
 
         ALWAYS_INLINE
-        static inline void *operator new (size_t)
+        static inline void *operator new (size_t, Quota &quota)
         {
-            return Buddy::allocator.alloc (0, Buddy::FILL_0);
+            return Buddy::allocator.alloc (0, quota, Buddy::FILL_0);
         }
 
-        Vmcb (mword, mword);
+        ALWAYS_INLINE
+        static inline void destroy(Vmcb *obj, Quota &quota)
+        {
+            Buddy::allocator.free (reinterpret_cast<mword>(Buddy::phys_to_ptr(static_cast<Paddr>(obj->base_msr))), quota);
+            obj->~Vmcb();
+            Buddy::allocator.free (reinterpret_cast<mword>(obj), quota);
+        }
+
+        Vmcb (Quota &quota, mword, mword);
 
         ALWAYS_INLINE
         inline Vmcb()

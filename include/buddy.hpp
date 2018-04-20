@@ -23,6 +23,7 @@
 #include "extern.hpp"
 #include "memory.hpp"
 #include "spinlock.hpp"
+#include "quota.hpp"
 
 class Buddy
 {
@@ -98,9 +99,9 @@ class Buddy
         INIT
         Buddy (mword phys, mword virt, mword f_addr, size_t size);
 
-        void *alloc (unsigned short ord, Fill fill = NOFILL);
+        void *alloc (unsigned short ord, Quota &quota, Fill fill);
 
-        void free (mword addr);
+        void free (mword addr, Quota &quota);
 
         ALWAYS_INLINE
         static inline void *phys_to_ptr (Paddr phys)

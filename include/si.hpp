@@ -1,7 +1,7 @@
 /*
- * Hypercall Timeout
+ * Signal
  *
- * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
+ * Copyright (C) 2014-2015 Alexander Boettcher, Genode Labs GmbH.
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -17,24 +17,33 @@
 
 #pragma once
 
-#include "timeout.hpp"
+#include "types.hpp"
+#include "queue.hpp"
 
-class Ec;
 class Sm;
 
-class Timeout_hypercall : public Timeout
+class Si
 {
-    private:
-        Ec * const ec;
-        Sm *       sm { nullptr };
+    friend class Queue<Si>;
 
-        void trigger();
+    private:
+        Sm *        sm;
+        Si *        prev;
+        Si *        next;
 
     public:
+        mword const value;
+
+        Si (Sm *, mword);
+        ~Si();
+
         ALWAYS_INLINE
-        inline Timeout_hypercall (Ec *e) : ec (e) {}
+        inline bool is_signal() const { return sm; }
 
-        ~Timeout_hypercall();
+        ALWAYS_INLINE
+        inline bool queued() const { return next; }
 
-        void enqueue (uint64 t, Sm *s);
+        void chain(Sm *s);
+
+        void submit();
 };

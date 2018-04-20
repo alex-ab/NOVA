@@ -43,10 +43,10 @@ class Kobject : public Mdb
             INVALID,
         };
 
-        explicit Kobject (Type t, Space *s, mword b = 0, mword a = 0) : Mdb (s, reinterpret_cast<mword>(this), b, a, free), objtype (t) {}
+        explicit Kobject (Type t, Space *s, mword b = 0, mword a = 0, void (*f)(Rcu_elem *) = free, void (*pref)(Rcu_elem *) = nullptr ) : Mdb (s, reinterpret_cast<mword>(this), b, a, f, pref), objtype (t) {}
 
     public:
-        ALWAYS_INLINE
+        ALWAYS_INLINE NULL_CHECK
         inline Type type() const
         {
             return EXPECT_TRUE (this) ? Type (objtype) : INVALID;

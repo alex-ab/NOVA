@@ -29,6 +29,9 @@ bool Mdb::insert_node (Mdb *p, mword a)
 {
     Lock_guard <Spinlock> guard (lock);
 
+    if (!accessible())
+        return false;
+
     if (!p->alive())
         return false;
 
@@ -37,7 +40,6 @@ bool Mdb::insert_node (Mdb *p, mword a)
 
     prev = prnt = p;
     next = p->next;
-    dpth = static_cast<uint16>(p->dpth + 1);
     p->next = p->next->prev = this;
 
     return true;

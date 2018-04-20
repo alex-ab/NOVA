@@ -56,8 +56,6 @@ class Utcb_head
 class Utcb_data
 {
     protected:
-        union {
-            struct {
                 mword           mtd, inst_len, rip, rflags;
                 uint32          intr_state, actv_state;
                 union {
@@ -75,16 +73,19 @@ class Utcb_data
                 uint32          ctrl[2];
                 uint64          reserved;
                 mword           cr0, cr2, cr3, cr4;
+                mword           pdpte[4];
 #ifdef __x86_64__
                 mword           cr8, efer;
+                uint64          star;
+                uint64          lstar;
+                uint64          fmask;
+                uint64          kernel_gs_base;
+                uint32          tpr;
+                uint32          tpr_threshold;
 #endif
                 mword           dr7, sysenter_cs, sysenter_rsp, sysenter_rip;
                 Utcb_segment    es, cs, ss, ds, fs, gs, ld, tr, gd, id;
                 uint64          tsc_val, tsc_off;
-            };
-
-            mword mr[];
-        };
 };
 
 class Utcb : public Utcb_head, private Utcb_data
@@ -112,21 +113,16 @@ class Utcb : public Utcb_head, private Utcb_data
             register mword n = ui();
 
             dst->items = items;
-#if 0
-            mword *d = dst->mr, *s = mr;
-            asm volatile ("rep; movsl" : "+D" (d), "+S" (s), "+c" (n) : : "memory");
-#else
-            for (unsigned long i = 0; i < n; i++)
-                dst->mr[i] = mr[i];
-#endif
+            for (mword i = 0; i < n; i++)
+                reinterpret_cast<mword *>(&dst->mtd)[i] = reinterpret_cast<mword *>(&mtd)[i];
         }
 
         ALWAYS_INLINE
         inline Xfer *xfer() { return reinterpret_cast<Xfer *>(this) + PAGE_SIZE / sizeof (Xfer) - 1; }
 
         ALWAYS_INLINE
-        static inline void *operator new (size_t) { return Buddy::allocator.alloc (0, Buddy::FILL_0); }
+        static inline void *operator new (size_t, Quota &quota) { return Buddy::allocator.alloc (0, quota, Buddy::FILL_0); }
 
         ALWAYS_INLINE
-        static inline void operator delete (void *ptr) { Buddy::allocator.free (reinterpret_cast<mword>(ptr)); }
+        static inline void destroy(Utcb *obj, Quota &quota) { obj->~Utcb(); Buddy::allocator.free (reinterpret_cast<mword>(obj), quota); }
 };

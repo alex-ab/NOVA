@@ -35,7 +35,7 @@ void Gsi::setup()
 {
     for (unsigned gsi = 0; gsi < NUM_GSI; gsi++) {
 
-        Space_obj::insert_root (Gsi::gsi_table[gsi].sm = new Sm (&Pd::kern, NUM_CPU + gsi));
+        Space_obj::insert_root (Pd::kern.quota, Gsi::gsi_table[gsi].sm = new (Pd::kern.quota) Sm (&Pd::kern, NUM_CPU + gsi));
 
         gsi_table[gsi].vec = static_cast<uint8>(VEC_GSI + gsi);
 
@@ -57,7 +57,7 @@ uint64 Gsi::set (unsigned gsi, unsigned cpu, unsigned rid)
     Ioapic *ioapic = gsi_table[gsi].ioapic;
 
     if (ioapic) {
-        ioapic->set_cpu (gsi, Dmar::ire() ? 0 : aid);
+        ioapic->set_cpu (gsi, aid, Dmar::ire());
         ioapic->set_irt (gsi, gsi_table[gsi].irt);
         rid = ioapic->get_rid();
     } else {
@@ -101,7 +101,7 @@ void Gsi::vector (unsigned vector)
 
     Lapic::eoi();
 
-    gsi_table[gsi].sm->up();
+    gsi_table[gsi].sm->submit();
 
     Counter::print<1,16> (++Counter::gsi[gsi], Console_vga::Color (Console_vga::COLOR_LIGHT_YELLOW - gsi / 64), SPN_GSI + gsi % 64);
 }

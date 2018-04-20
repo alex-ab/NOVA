@@ -6,6 +6,7 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
+ * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -66,6 +67,15 @@ unsigned    Cpu::row;
 uint32      Cpu::name[12];
 uint32      Cpu::features[6];
 bool        Cpu::bsp;
+bool        Cpu::preemption;
+uint32      Cpu::perf_bit_size;
+
+bool invariant_tsc()
+{
+    uint32 eax, ebx, ecx, edx;
+    Cpu::cpuid (0x80000007, eax, ebx, ecx, edx);
+    return edx & 0x100;
+}
 
 void Cpu::check_features()
 {
@@ -141,6 +151,20 @@ void Cpu::check_features()
     if (vendor == AMD)
         if (family > 0xf || (family == 0xf && model >= 0x40))
             Msr::write (Msr::AMD_IPMR, Msr::read<uint32>(Msr::AMD_IPMR) & ~(3ul << 27));
+
+    // enable PAT if available
+    cpuid (0x1, eax, ebx, ecx, edx);
+    if (edx & (1 << 16)) {
+        uint32 cr_pat = Msr::read<uint32>(Msr::IA32_CR_PAT) & 0xffff00ff;
+
+        cr_pat |= 1 << 8;
+        Msr::write<uint32>(Msr::IA32_CR_PAT, cr_pat);
+    } else
+        trace (0, "warning: no PAT support");
+    
+    cpuid (0xa, eax, ebx, ecx, edx);
+    perf_bit_size = (edx>>5) & 0xff;
+    Console::print("eax %x ebx %x ecx %x edx %x", eax, ebx, ecx, edx); 
 }
 
 void Cpu::setup_thermal()
@@ -189,14 +213,14 @@ void Cpu::init()
     // Initialize CPU number and check features
     check_features();
 
-    Lapic::init();
+    Lapic::init(invariant_tsc());
 
     row = Console_vga::con.spinner (id);
 
     Paddr phys; mword attr;
     Pd::kern.Space_mem::loc[id] = Hptp (Hpt::current());
     Pd::kern.Space_mem::loc[id].lookup (CPU_LOCAL_DATA, phys, attr);
-    Pd::kern.Space_mem::insert (HV_GLOBAL_CPUS + id * PAGE_SIZE, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P, phys);
+    Pd::kern.Space_mem::insert (Pd::kern.quota, HV_GLOBAL_CPUS + id * PAGE_SIZE, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P, phys);
     Hpt::ord = min (Hpt::ord, feature (FEAT_1GB_PAGES) ? 26UL : 17UL);
 
     if (EXPECT_TRUE (feature (FEAT_ACPI)))
@@ -207,8 +231,13 @@ void Cpu::init()
 
     setup_pcid();
 
+    mword cr4 = get_cr4();
     if (EXPECT_TRUE (feature (FEAT_SMEP)))
-        set_cr4 (get_cr4() | Cpu::CR4_SMEP);
+        cr4 |= Cpu::CR4_SMEP;
+    if (EXPECT_TRUE (feature (FEAT_SMAP)))
+        cr4 |= Cpu::CR4_SMAP;
+    if (cr4 != get_cr4())
+        set_cr4 (cr4);
 
     Vmcs::init();
     Vmcb::init();

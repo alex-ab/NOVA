@@ -30,14 +30,14 @@ INIT_PRIORITY (PRIO_SLAB)
 Slab_cache  Dmar::cache (sizeof (Dmar), 8);
 
 Dmar *      Dmar::list;
-Dmar_ctx *  Dmar::ctx = new Dmar_ctx;
-Dmar_irt *  Dmar::irt = new Dmar_irt;
+Dmar_ctx *  Dmar::ctx = new (Pd::kern.quota) Dmar_ctx;
+Dmar_irt *  Dmar::irt = new (Pd::kern.quota) Dmar_irt;
 uint32      Dmar::gcmd = GCMD_TE;
 
-Dmar::Dmar (Paddr p) : List<Dmar> (list), reg_base ((hwdev_addr -= PAGE_SIZE) | (p & PAGE_MASK)), invq (static_cast<Dmar_qi *>(Buddy::allocator.alloc (ord, Buddy::FILL_0))), invq_idx (0)
+Dmar::Dmar (Paddr p) : List<Dmar> (list), reg_base ((hwdev_addr -= PAGE_SIZE) | (p & PAGE_MASK)), invq (static_cast<Dmar_qi *>(Buddy::allocator.alloc (ord, Pd::kern.quota, Buddy::FILL_0))), invq_idx (0)
 {
-    Pd::kern.Space_mem::delreg (p & ~PAGE_MASK);
-    Pd::kern.Space_mem::insert (reg_base, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, p & ~PAGE_MASK);
+    Pd::kern.Space_mem::delreg (Pd::kern.quota, p & ~PAGE_MASK);
+    Pd::kern.Space_mem::insert (Pd::kern.quota, reg_base, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, p & ~PAGE_MASK);
 
     cap  = read<uint64>(REG_CAP);
     ecap = read<uint64>(REG_ECAP);
@@ -71,7 +71,7 @@ void Dmar::assign (unsigned long rid, Pd *p)
 
     Dmar_ctx *r = ctx + (rid >> 8);
     if (!r->present())
-        r->set (0, Buddy::ptr_to_phys (new Dmar_ctx) | 1);
+        r->set (0, Buddy::ptr_to_phys (new (p->quota) Dmar_ctx) | 1);
 
     Dmar_ctx *c = static_cast<Dmar_ctx *>(Buddy::phys_to_ptr (r->addr())) + (rid & 0xff);
     if (c->present())
@@ -79,7 +79,7 @@ void Dmar::assign (unsigned long rid, Pd *p)
 
     flush_ctx();
 
-    c->set (lev | p->did << 8, p->dpt.root (lev + 1) | 1);
+    c->set (lev | p->did << 8, p->dpt.root (p->quota, lev + 1) | 1);
 }
 
 void Dmar::fault_handler()

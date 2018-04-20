@@ -147,7 +147,7 @@ Vtlb::Reason Vtlb::miss (Exc_regs *regs, mword virt, mword &error)
             if (lev == 2 || size < 1UL << shift) {
 
                 if (tlb->super())
-                    tlb->val = static_cast<typeof tlb->val>(Buddy::ptr_to_phys (new Vtlb) | (lev == 2 ? 0 : TLB_A | TLB_U | TLB_W) | TLB_M | TLB_P);
+                    tlb->val = static_cast<typeof tlb->val>(Buddy::ptr_to_phys (new (Pd::current->quota) Vtlb) | (lev == 2 ? 0 : TLB_A | TLB_U | TLB_W) | TLB_M | TLB_P);
 
                 else if (!tlb->present()) {
                     static_cast<Vtlb *>(Buddy::phys_to_ptr (tlb->addr()))->flush_ptab (tlb->mark());
@@ -161,7 +161,7 @@ Vtlb::Reason Vtlb::miss (Exc_regs *regs, mword virt, mword &error)
             }
 
             if (!tlb->super())
-                delete static_cast<Vtlb *>(Buddy::phys_to_ptr (tlb->addr()));
+                Vtlb::destroy(static_cast<Vtlb *>(Buddy::phys_to_ptr (tlb->addr())), Pd::current->quota);
 
             attr |= TLB_S;
         }

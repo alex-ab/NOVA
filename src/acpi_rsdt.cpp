@@ -21,6 +21,7 @@
 #include "acpi.hpp"
 #include "acpi_rsdt.hpp"
 #include "hpt.hpp"
+#include "pd.hpp"
 
 struct Acpi_table_rsdt::table_map Acpi_table_rsdt::map[] INITDATA =
 {
@@ -40,11 +41,11 @@ void Acpi_table_rsdt::parse (Paddr addr, size_t size) const
 
     Paddr table[count];
     for (unsigned i = 0; i < count; i++)
-        table[i] = static_cast<Paddr>(size == sizeof (*xsdt) ? xsdt[i] : rsdt[i]);
+        table[i] = static_cast<Paddr>(size == 8 ? xsdt(i) : rsdt(i));
 
     for (unsigned i = 0; i < count; i++) {
 
-        Acpi_table *acpi = static_cast<Acpi_table *>(Hpt::remap (table[i]));
+        Acpi_table *acpi = static_cast<Acpi_table *>(Hpt::remap (Pd::kern.quota, table[i]));
 
         if (acpi->good_checksum (table[i]))
             for (unsigned j = 0; j < sizeof map / sizeof *map; j++)

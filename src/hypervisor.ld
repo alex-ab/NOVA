@@ -33,10 +33,16 @@ PHDRS
 {
     init    PT_LOAD;
     kern    PT_LOAD;
+    reserve PT_LOAD FLAGS(7);
 }
 
 SECTIONS
 {
+    .cpu_ap AP_BOOT_PADDR :
+    {
+    . += 4K;
+    } : reserve
+
     .init LOAD_ADDR :
     {
         *(.init)
@@ -46,7 +52,7 @@ SECTIONS
     . = ALIGN(4K) + 4K; PROVIDE (STACK = .);
 
     PROVIDE (LOAD_E = .);
-    OFFSET = LINK_ADDR - ALIGN (4M);
+    OFFSET = LINK_ADDR - ALIGN (16M);
     PROVIDE (LINK_P = LINK_ADDR - OFFSET);
 
     .text LINK_ADDR : AT (ADDR (.text) - OFFSET)
@@ -108,7 +114,7 @@ SECTIONS
 #endif
         _mempool_f = .;
 
-        . += 16M;
+        . += CONFIG_KERNEL_MEMORY;
         . = ALIGN(4M);
 
         PROVIDE (LINK_E = . - OFFSET);

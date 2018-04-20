@@ -5,6 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -30,7 +31,7 @@ class Pte
     protected:
         E val;
 
-        P *walk (E, unsigned long, bool = true);
+        P *walk (Quota &quota, E, unsigned long, bool = true);
 
         ALWAYS_INLINE
         inline bool present() const { return val & P::PTE_P; }
@@ -62,9 +63,9 @@ class Pte
         }
 
         ALWAYS_INLINE
-        static inline void *operator new (size_t)
+        static inline void *operator new (size_t, Quota &quota)
         {
-            void *p = Buddy::allocator.alloc (0, Buddy::FILL_0);
+            void *p = Buddy::allocator.alloc (0, quota, Buddy::FILL_0);
 
             if (F)
                 flush (p, PAGE_SIZE);
@@ -73,9 +74,14 @@ class Pte
         }
 
         ALWAYS_INLINE
-        static inline void operator delete (void *ptr) { Buddy::allocator.free (reinterpret_cast<mword>(ptr)); }
+        static inline void destroy(Pte *obj, Quota &quota) { obj->~Pte(); Buddy::allocator.free (reinterpret_cast<mword>(obj), quota); }
+
+        void free_up (Quota &quota, unsigned l, P *, mword, bool (*) (Paddr, mword, unsigned), bool (*) (unsigned, mword));
 
     public:
+
+        Pte() : val(0) {}
+
         enum
         {
             ERR_P   = 1UL << 0,
@@ -97,9 +103,13 @@ class Pte
         static inline unsigned max() { return L; }
 
         ALWAYS_INLINE
-        inline E root (mword l = L - 1) { return Buddy::ptr_to_phys (walk (0, l)); }
+        inline E root (Quota &quota, mword l = L - 1) { return Buddy::ptr_to_phys (walk (quota, 0, l)); }
 
         size_t lookup (E, Paddr &, mword &);
 
-        void update (E, mword, E, mword, Type = TYPE_UP);
+        bool update (Quota &quota, E, mword, E, mword, Type = TYPE_UP);
+
+        void clear (Quota &quota, bool (*) (Paddr, mword, unsigned) = nullptr, bool (*) (unsigned, mword) = nullptr);
+
+        bool check(Quota_guard &qg, mword o) { return qg.check(o / (4096 / sizeof(E)) + L); }
 };

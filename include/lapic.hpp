@@ -105,7 +105,9 @@ class Lapic
     public:
         static unsigned freq_tsc;
         static unsigned freq_bus;
-
+        static uint64 max_instruction, perf_max_count;
+        static uint64 counter;
+        
         ALWAYS_INLINE
         static inline unsigned id()
         {
@@ -133,6 +135,7 @@ class Lapic
         ALWAYS_INLINE
         static inline void set_timer (uint64 tsc)
         {
+            return;
             if (freq_bus) {
                 uint64 now = rdtsc();
                 uint32 icr;
@@ -147,7 +150,7 @@ class Lapic
             return read (LAPIC_TMR_CCR);
         }
 
-        static void init();
+        static void init(bool);
 
         static void send_ipi (unsigned, unsigned, Delivery_mode = DLV_FIXED, Shorthand = DSH_NONE);
 
@@ -156,4 +159,9 @@ class Lapic
 
         REGPARM (1)
         static void ipi_vector (unsigned) asm ("ipi_vector");
+        
+        static void activate_pmi();
+        static void program_pmi(int number = 0);
+        static void cancel_pmi();
+        static void update_counter();
 };

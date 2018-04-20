@@ -44,12 +44,18 @@ class Space_pio : public Space
         ALWAYS_INLINE
         inline Space_mem *space_mem();
 
-        void update (bool, mword, mword);
+        void update (Quota &quota, bool, mword, mword);
 
     public:
-        Paddr walk (bool = false, mword = 0);
 
-        void update (Mdb *, mword = 0);
+        Space_pio() : hbmp(0), gbmp(0) {}
+
+        Paddr walk (Quota &quota, bool = false, mword = 0);
+
+        bool update (Quota &quota, Mdb *, mword = 0);
 
         static void page_fault (mword, mword);
+
+        ALWAYS_INLINE
+        inline mword sticky_sub(mword) { return 0; }
 };

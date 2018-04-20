@@ -21,6 +21,7 @@
 #pragma once
 
 #include "assert.hpp"
+#include "msr.hpp"
 
 class Vmcs
 {
@@ -139,7 +140,10 @@ class Vmcs
             GUEST_DEBUGCTL_HI       = 0x2803ul,
             GUEST_EFER              = 0x2806ul,
             GUEST_PERF_GLOBAL_CTRL  = 0x2808ul,
-            GUEST_PDPTE             = 0x280aul,
+            GUEST_PDPTE0            = 0x280aul,
+            GUEST_PDPTE1            = 0x280cul,
+            GUEST_PDPTE2            = 0x280eul,
+            GUEST_PDPTE3            = 0x2810ul,
 
             // 64-Bit Host State
             HOST_EFER               = 0x2c02ul,
@@ -259,6 +263,7 @@ class Vmcs
         {
             EXI_HOST_64             = 1UL << 9,
             EXI_INTA                = 1UL << 15,
+            EXI_SAVE_EFER           = 1UL << 20,
             EXI_LOAD_EFER           = 1UL << 21,
         };
 
@@ -351,9 +356,16 @@ class Vmcs
         };
 
         ALWAYS_INLINE
-        static inline void *operator new (size_t)
+        static inline void *operator new (size_t, Quota &quota)
         {
-            return Buddy::allocator.alloc (0, Buddy::NOFILL);
+            return Buddy::allocator.alloc (0, quota, Buddy::FILL_0);
+        }
+
+        ALWAYS_INLINE
+        static inline void destroy(Vmcs *obj, Quota &quota)
+        {
+            obj->~Vmcs();
+            Buddy::allocator.free (reinterpret_cast<mword>(obj), quota);
         }
 
         Vmcs (mword, mword, mword, uint64);
@@ -431,4 +443,60 @@ class Vmcs
         static bool has_vnmi()      { return ctrl_pin.clr & PIN_VIRT_NMI; }
 
         static void init();
+};
+
+struct PACKED Msr_entry
+{
+    uint32 msr_index;
+    uint32 reserved;
+    uint64 msr_data;
+
+    Msr_entry(uint32 index)
+    : msr_index(index), reserved(0), msr_data(0) { }
+};
+
+struct Msr_area
+{
+    enum { MSR_COUNT = 4 };
+
+    Msr_entry ia32_star           { Msr::IA32_STAR };
+    Msr_entry ia32_lstar          { Msr::IA32_LSTAR };
+    Msr_entry ia32_fmask          { Msr::IA32_FMASK };
+    Msr_entry ia32_kernel_gs_base { Msr::IA32_KERNEL_GS_BASE };
+
+    ALWAYS_INLINE
+    static inline void *operator new (size_t, Quota &quota)
+    {
+        /* allocate one page */
+        return Buddy::allocator.alloc (0, quota, Buddy::FILL_0);
+    }
+
+    ALWAYS_INLINE
+    static inline void destroy(Msr_area *obj, Quota &quota)
+    {
+        Buddy::allocator.free (reinterpret_cast<mword>(obj), quota);
+    }
+};
+
+struct Virtual_apic_page
+{
+    uint32 data [4096 / 4];
+
+    enum { VTPR = 0x80 / 4 };
+
+    ALWAYS_INLINE
+    static inline void *operator new (size_t, Quota &quota)
+    {
+        /* allocate one page */
+        return Buddy::allocator.alloc (0, quota, Buddy::FILL_0);
+    }
+
+    ALWAYS_INLINE
+    static inline void destroy(Virtual_apic_page *obj, Quota &quota)
+    {
+        Buddy::allocator.free (reinterpret_cast<mword>(obj), quota);
+    }
+
+    uint32 vtpr() { return data[VTPR]; }
+    void vtpr(uint32 value) { data[VTPR] = value; }
 };

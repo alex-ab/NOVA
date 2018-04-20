@@ -6,6 +6,7 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
+ * Copyright (C) 2013-2015 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -30,12 +31,18 @@
 #include "sc.hpp"
 #include "timeout_hypercall.hpp"
 #include "tss.hpp"
+#include "si.hpp"
+
+#include "stdio.hpp"
 
 class Utcb;
+class Sm;
+class Pt;
 
 class Ec : public Kobject, public Refcount, public Queue<Sc>
 {
     friend class Queue<Ec>;
+    friend class Sc;
 
     private:
         void        (*cont)() ALIGNED (16);
@@ -56,6 +63,10 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         };
         unsigned const evt;
         Timeout_hypercall timeout;
+        mword          user_utcb;
+
+        Sm *         xcpu_sm;
+        Pt *         pt_oom;
 
         static Slab_cache cache;
 
@@ -82,7 +93,7 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         static inline void svm_exception (mword);
 
         NORETURN
-        static inline void svm_cr();
+        static inline void svm_cr(mword);
 
         NORETURN
         static inline void svm_invlpg();
@@ -104,6 +115,50 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         NOINLINE
         static void handle_hazard (mword, void (*)());
 
+        static void pre_free (Rcu_elem * a)
+        {
+            Ec * e = static_cast<Ec *>(a);
+
+            assert(e);
+
+            // remove mapping in page table
+            if (e->user_utcb) {
+                e->pd->remove_utcb(e->user_utcb);
+                e->pd->Space_mem::insert (e->pd->quota, e->user_utcb, 0, 0, 0);
+                e->user_utcb = 0;
+            }
+
+            // XXX If e is on another CPU and there the fpowner - this check will fail.
+            // XXX For now the destruction is delayed until somebody else grabs the FPU.
+            if (fpowner == e) {
+                assert (Sc::current->cpu == e->cpu);
+
+                bool zero = fpowner->del_ref();
+                assert (!zero);
+
+                fpowner      = nullptr;
+                Cpu::hazard |= HZD_FPU;
+            }
+        }
+
+        ALWAYS_INLINE
+        static inline void destroy (Ec *obj, Quota &quota) { obj->~Ec(); cache.free (obj, quota); }
+
+        static void free (Rcu_elem * a)
+        {
+            Ec * e = static_cast<Ec *>(a);
+
+            if (e->regs.vtlb) {
+                trace(0, "leaking memory - vCPU EC memory re-usage not supported");
+                return;
+            }
+
+            if (e->del_ref()) {
+                assert(e != Ec::current);
+                Ec::destroy (e, e->pd->quota);
+            }
+        }
+
         ALWAYS_INLINE
         inline Sys_regs *sys_regs() { return &regs; }
 
@@ -114,7 +169,11 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         inline void set_partner (Ec *p)
         {
             partner = p;
+            bool ok = partner->add_ref();
+            assert (ok);
             partner->rcap = this;
+            ok = partner->rcap->add_ref();
+            assert (ok);
             Sc::ctr_link++;
         }
 
@@ -122,7 +181,13 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         inline unsigned clr_partner()
         {
             assert (partner == current);
-            partner->rcap = nullptr;
+            if (partner->rcap) {
+                bool last = partner->rcap->del_ref();
+                assert (!last);
+                partner->rcap = nullptr;
+            }
+            bool last = partner->del_ref();
+            assert (!last);
             partner = nullptr;
             return Sc::ctr_link--;
         }
@@ -144,7 +209,10 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         static Ec *fpowner CPULOCAL;
 
         Ec (Pd *, void (*)(), unsigned);
-        Ec (Pd *, mword, Pd *, void (*)(), unsigned, unsigned, mword, mword);
+        Ec (Pd *, mword, Pd *, void (*)(), unsigned, unsigned, mword, mword, Pt *);
+        Ec (Pd *, Pd *, void (*f)(), unsigned, Ec *);
+
+        ~Ec();
 
         ALWAYS_INLINE
         inline void add_tsc_offset (uint64 tsc)
@@ -169,10 +237,23 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
                 timeout.dequeue();
         }
 
+        ALWAYS_INLINE
+        inline void set_si_regs(mword sig, mword cnt)
+        {
+            regs.ARG_2 = sig;
+            regs.ARG_3 = cnt;
+        }
+
         ALWAYS_INLINE NORETURN
         inline void make_current()
         {
+            if (EXPECT_FALSE (current->del_rcu()))
+                Rcu::call (current);
+
             current = this;
+
+            bool ok = current->add_ref();
+            assert (ok);
 
             Tss::run.sp0 = reinterpret_cast<mword>(exc_regs() + 1);
 
@@ -210,6 +291,9 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
                 if (!blocked())
                     return;
 
+                bool ok = Sc::current->add_ref();
+                assert (ok);
+
                 enqueue (Sc::current);
             }
 
@@ -219,11 +303,19 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         ALWAYS_INLINE
         inline void release (void (*c)())
         {
-            cont = c;
+            if (c)
+                cont = c;
 
             Lock_guard <Spinlock> guard (lock);
 
-            for (Sc *s; dequeue (s = head()); s->remote_enqueue()) ;
+            for (Sc *s; dequeue (s = head()); ) {
+                if (EXPECT_TRUE(!s->last_ref()) || s->ec->partner) {
+                    s->remote_enqueue(false);
+                    continue;
+                }
+
+                Rcu::call(s);
+            }
         }
 
         HOT NORETURN
@@ -232,13 +324,24 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         HOT NORETURN
         static void ret_user_iret() asm ("ret_user_iret");
 
+        HOT
+        static void chk_kern_preempt() asm ("chk_kern_preempt");
+
         NORETURN
         static void ret_user_vmresume();
 
         NORETURN
         static void ret_user_vmrun();
 
+        NORETURN
+        static void ret_xcpu_reply();
+
+        template <void (*)()>
+        NORETURN
+        static void ret_xcpu_reply_oom();
+
         template <Sys_regs::Status S, bool T = false>
+
         NOINLINE NORETURN
         static void sys_finish();
 
@@ -256,7 +359,7 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         static void recv_user();
 
         HOT NORETURN
-        static void reply (void (*)() = nullptr);
+        static void reply (void (*)() = nullptr, Sm * = nullptr);
 
         HOT NORETURN
         static void sys_call();
@@ -298,19 +401,35 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         static void sys_sm_ctrl();
 
         NORETURN
+        static void sys_pd_ctrl();
+
+        NORETURN
         static void sys_assign_pci();
 
         NORETURN
         static void sys_assign_gsi();
 
         NORETURN
+        static void sys_xcpu_call();
+
+        template <void (*)()>
+        NORETURN
+        static void sys_xcpu_call_oom();
+
+        NORETURN
         static void idle();
+
+        NORETURN
+        static void xcpu_return();
+
+        template <void (*)()>
+        NORETURN
+        static void oom_xcpu_return();
 
         NORETURN
         static void root_invoke();
 
         template <bool>
-        NORETURN
         static void delegate();
 
         NORETURN
@@ -319,9 +438,24 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         NORETURN
         static void die (char const *, Exc_regs * = &current->regs);
 
-        ALWAYS_INLINE
-        static inline void *operator new (size_t) { return cache.alloc(); }
+        static void idl_handler();
 
         ALWAYS_INLINE
-        static inline void operator delete (void *ptr) { cache.free (ptr); }
+        static inline void *operator new (size_t, Quota &quota) { return cache.alloc(quota); }
+
+        template <void (*)()>
+        NORETURN
+        void oom_xcpu(Pt *, mword, mword);
+
+        NORETURN
+        void oom_delegate(Ec *, Ec *, Ec *, bool, bool);
+
+        NORETURN
+        void oom_call(Pt *, mword, mword, void (*)(), void (*)());
+
+        NORETURN
+        void oom_call_cpu(Pt *, mword, void (*)(), void (*)());
+
+        template <void(*C)()>
+        static void check(mword, bool = true);
 };

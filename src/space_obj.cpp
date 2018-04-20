@@ -25,16 +25,18 @@ Space_mem *Space_obj::space_mem()
     return static_cast<Pd *>(this);
 }
 
-Paddr Space_obj::walk (mword idx)
+Paddr Space_obj::walk (Quota &quota, mword idx, bool &shootdown)
 {
     mword virt = idx_to_virt (idx); Paddr phys; void *ptr;
 
     if (!space_mem()->lookup (virt, phys) || (phys & ~PAGE_MASK) == reinterpret_cast<Paddr>(&FRAME_0)) {
 
-        Paddr p = Buddy::ptr_to_phys (ptr = Buddy::allocator.alloc (0, Buddy::FILL_0));
+        shootdown = (phys & ~PAGE_MASK) == reinterpret_cast<Paddr>(&FRAME_0);
 
-        if ((phys = space_mem()->replace (virt, p | Hpt::HPT_NX | Hpt::HPT_D | Hpt::HPT_A | Hpt::HPT_W | Hpt::HPT_P)) != p)
-            Buddy::allocator.free (reinterpret_cast<mword>(ptr));
+        Paddr p = Buddy::ptr_to_phys (ptr = Buddy::allocator.alloc (0, quota, Buddy::FILL_0));
+
+        if ((phys = space_mem()->replace (quota, virt, p | Hpt::HPT_NX | Hpt::HPT_D | Hpt::HPT_A | Hpt::HPT_W | Hpt::HPT_P)) != p)
+            Buddy::allocator.free (reinterpret_cast<mword>(ptr), quota);
 
         phys |= virt & PAGE_MASK;
     }
@@ -42,9 +44,11 @@ Paddr Space_obj::walk (mword idx)
     return phys;
 }
 
-void Space_obj::update (mword idx, Capability cap)
+bool Space_obj::update (Quota &quota, mword idx, Capability cap)
 {
-    *static_cast<Capability *>(Buddy::phys_to_ptr (walk (idx))) = cap;
+    bool shootdown = false;
+    *static_cast<Capability *>(Buddy::phys_to_ptr (walk (quota, idx, shootdown))) = cap;
+    return shootdown;
 }
 
 size_t Space_obj::lookup (mword idx, Capability &cap)
@@ -58,20 +62,20 @@ size_t Space_obj::lookup (mword idx, Capability &cap)
     return 1;
 }
 
-void Space_obj::update (Mdb *mdb, mword r)
+bool Space_obj::update (Quota &quota, Mdb *mdb, mword r)
 {
     assert (this == mdb->space && this != &Pd::kern);
     Lock_guard <Spinlock> guard (mdb->node_lock);
-    update (mdb->node_base, Capability (reinterpret_cast<Kobject *>(mdb->node_phys), mdb->node_attr & ~r));
+    return update (quota, mdb->node_base, Capability (reinterpret_cast<Kobject *>(mdb->node_phys), mdb->node_attr & ~r));
 }
 
-bool Space_obj::insert_root (Kobject *obj)
+bool Space_obj::insert_root (Quota &quota, Kobject *obj)
 {
     if (!obj->space->tree_insert (obj))
         return false;
 
     if (obj->space != static_cast<Space_obj *>(&Pd::kern))
-        static_cast<Space_obj *>(obj->space)->update (obj->node_base, Capability (obj, obj->node_attr));
+        static_cast<Space_obj *>(obj->space)->update (quota, obj->node_base, Capability (obj, obj->node_attr));
 
     return true;
 }
@@ -80,6 +84,6 @@ void Space_obj::page_fault (mword addr, mword error)
 {
     assert (!(error & Hpt::ERR_W));
 
-    if (!Pd::current->Space_mem::loc[Cpu::id].sync_from (Pd::current->Space_mem::hpt, addr, CPU_LOCAL))
-        Pd::current->Space_mem::replace (addr, reinterpret_cast<Paddr>(&FRAME_0) | Hpt::HPT_NX | Hpt::HPT_A | Hpt::HPT_P);
+    if (!Pd::current->Space_mem::loc[Cpu::id].sync_from (Pd::current->quota, Pd::current->Space_mem::hpt, addr, CPU_LOCAL))
+        Pd::current->Space_mem::replace (Pd::current->quota, addr, reinterpret_cast<Paddr>(&FRAME_0) | Hpt::HPT_NX | Hpt::HPT_A | Hpt::HPT_P);
 }

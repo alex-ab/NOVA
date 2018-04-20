@@ -23,6 +23,7 @@
 #include "lock_guard.hpp"
 #include "slab.hpp"
 #include "stdio.hpp"
+#include "pd.hpp"
 
 Slab::Slab (Slab_cache *slab_cache)
     : avail (slab_cache->elem),
@@ -70,9 +71,9 @@ Slab_cache::Slab_cache (unsigned long elem_size, unsigned elem_align)
            elem_align);
 }
 
-void Slab_cache::grow()
+void Slab_cache::grow(Quota &quota)
 {
-    Slab *slab = new Slab (this);
+    Slab *slab = new (quota) Slab (this);
 
     if (head)
         head->prev = slab;
@@ -81,12 +82,12 @@ void Slab_cache::grow()
     head = curr = slab;
 }
 
-void *Slab_cache::alloc()
+void *Slab_cache::alloc(Quota &quota)
 {
     Lock_guard <Spinlock> guard (lock);
 
     if (EXPECT_FALSE (!curr))
-        grow();
+        grow(quota);
 
     assert (!curr->full());
     assert (!curr->next || curr->next->full());
@@ -100,7 +101,7 @@ void *Slab_cache::alloc()
     return ret;
 }
 
-void Slab_cache::free (void *ptr)
+void Slab_cache::free (void *ptr, Quota &)
 {
     Lock_guard <Spinlock> guard (lock);
 
@@ -139,10 +140,10 @@ void Slab_cache::free (void *ptr)
 
     } else if (EXPECT_FALSE (slab->empty())) {
 
-        // There are partial slabs in front of us and we're empty; requeue
-        if (slab->prev && !slab->prev->empty()) {
+        // There are slabs in front of us and we're empty; requeue
+        if (slab->prev) {
 
-            // Make partial slab in front of us current if we were current
+            // Make slab in front of us current if we were current
             if (slab == curr)
                 curr = slab->prev;
 
@@ -151,10 +152,18 @@ void Slab_cache::free (void *ptr)
             if (slab->next)
                 slab->next->prev = slab->prev;
 
-            // Enqueue as head
-            slab->prev = nullptr;
-            slab->next = head;
-            head = head->prev = slab;
+            if (slab->prev->empty() || (head && head->empty())) {
+                // There are already empty slabs - delete current slab
+                assert(head != slab);
+                /* XXX - accounting issue - use slabs solely per process !! */
+                Slab::destroy (slab, Pd::root.quota);
+            } else {
+                // There are partial slabs in front of us - requeue empty one
+                // Enqueue as head
+                slab->prev = nullptr;
+                slab->next = head;
+                head = head->prev = slab;
+            }
         }
     }
 }

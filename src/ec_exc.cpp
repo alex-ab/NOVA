@@ -22,6 +22,8 @@
 #include "gdt.hpp"
 #include "mca.hpp"
 #include "stdio.hpp"
+#include "msr.hpp"
+#include "lapic.hpp"
 
 void Ec::load_fpu()
 {
@@ -36,31 +38,41 @@ void Ec::load_fpu()
 
 void Ec::save_fpu()
 {
-    if (EXPECT_FALSE (!this))
-        return;
-
     if (!utcb)
         regs.fpu_ctrl (false);
 
     if (EXPECT_FALSE (!fpu))
-        fpu = new Fpu;
+        fpu = new (pd->quota) Fpu;
 
     fpu->save();
 }
 
 void Ec::transfer_fpu (Ec *ec)
 {
+    if ((!utcb && !regs.fpu_on) ||
+        (!ec->utcb && !ec->regs.fpu_on))
+      return;
+
     if (!(Cpu::hazard & HZD_FPU)) {
 
         Fpu::enable();
 
         if (fpowner != this) {
-            fpowner->save_fpu();
+            if (fpowner)
+                fpowner->save_fpu();
             load_fpu();
         }
     }
 
+    if (fpowner && fpowner->del_rcu()) {
+        Ec * last = fpowner;
+        fpowner = nullptr;
+        Rcu::call (last);
+    }
+
     fpowner = ec;
+    bool ok = fpowner->add_ref();
+    assert (ok);
 }
 
 void Ec::handle_exc_nm()
@@ -70,10 +82,20 @@ void Ec::handle_exc_nm()
     if (current == fpowner)
         return;
 
-    fpowner->save_fpu();
+    if (fpowner)
+        fpowner->save_fpu();
+
     current->load_fpu();
 
+    if (fpowner && fpowner->del_rcu()) {
+        Ec * last = fpowner;
+        fpowner = nullptr;
+        Rcu::call (last);
+    }
+
     fpowner = current;
+    bool ok = fpowner->add_ref();
+    assert (ok);
 }
 
 bool Ec::handle_exc_ts (Exc_regs *r)
@@ -87,7 +109,7 @@ bool Ec::handle_exc_ts (Exc_regs *r)
     return true;
 }
 
-bool Ec::handle_exc_gp (Exc_regs *)
+bool Ec::handle_exc_gp (Exc_regs *r)
 {
     if (Cpu::hazard & HZD_TR) {
         Cpu::hazard &= ~HZD_TR;
@@ -96,6 +118,10 @@ bool Ec::handle_exc_gp (Exc_regs *)
         return true;
     }
 
+    if (fixup (r->REG(ip))) {
+            r->REG(ax) = r->cr2;
+            return true;
+    }
     return false;
 }
 
@@ -104,11 +130,11 @@ bool Ec::handle_exc_pf (Exc_regs *r)
     mword addr = r->cr2;
 
     if (r->err & Hpt::ERR_U)
-        return addr < USER_ADDR && Pd::current->Space_mem::loc[Cpu::id].sync_from (Pd::current->Space_mem::hpt, addr, USER_ADDR);
+        return addr < USER_ADDR && Pd::current->Space_mem::loc[Cpu::id].sync_from (Pd::current->quota, Pd::current->Space_mem::hpt, addr, USER_ADDR);
 
     if (addr < USER_ADDR) {
 
-        if (Pd::current->Space_mem::loc[Cpu::id].sync_from (Pd::current->Space_mem::hpt, addr, USER_ADDR))
+        if (Pd::current->Space_mem::loc[Cpu::id].sync_from (Pd::current->quota, Pd::current->Space_mem::hpt, addr, USER_ADDR))
             return true;
 
         if (fixup (r->REG(ip))) {
@@ -117,7 +143,7 @@ bool Ec::handle_exc_pf (Exc_regs *r)
         }
     }
 
-    if (addr >= LINK_ADDR && addr < CPU_LOCAL && Pd::current->Space_mem::loc[Cpu::id].sync_from (Hptp (reinterpret_cast<mword>(&PDBR)), addr, CPU_LOCAL))
+    if (addr >= LINK_ADDR && addr < CPU_LOCAL && Pd::current->Space_mem::loc[Cpu::id].sync_from (Pd::current->quota, Hptp (reinterpret_cast<mword>(&PDBR)), addr, CPU_LOCAL))
         return true;
 
     // Kernel fault in I/O space
@@ -138,9 +164,17 @@ bool Ec::handle_exc_pf (Exc_regs *r)
 void Ec::handle_exc (Exc_regs *r)
 {
     Counter::exc[r->vec]++;
+    Console::print("Exc %lx", r->vec); 
 
     switch (r->vec) {
 
+        case Cpu::EXC_NMI:
+//            Console::print("PMI occured on NMI counter %llx reg %x", Msr::read<uint64>(Msr::MSR_PERF_FIXED_CTR0), 
+//                   Lapic::read_perf_reg());
+//            Lapic::program_pmi();
+//            Console::print("reg %x", Lapic::read_perf_reg());
+            return;
+            
         case Cpu::EXC_NM:
             handle_exc_nm();
             return;

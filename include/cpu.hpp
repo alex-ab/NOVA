@@ -6,6 +6,7 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
+ * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -24,6 +25,7 @@
 #include "compiler.hpp"
 #include "config.hpp"
 #include "types.hpp"
+#include "assert.hpp"
 
 class Cpu
 {
@@ -61,6 +63,7 @@ class Cpu
             FEAT_PCID           = 49,
             FEAT_TSC_DEADLINE   = 56,
             FEAT_SMEP           = 103,
+            FEAT_SMAP           = 116,
             FEAT_1GB_PAGES      = 154,
             FEAT_CMP_LEGACY     = 161,
             FEAT_SVM            = 162,
@@ -69,6 +72,7 @@ class Cpu
         enum
         {
             EXC_DB          = 1,
+            EXC_NMI         = 2,
             EXC_NM          = 7,
             EXC_TS          = 10,
             EXC_GP          = 13,
@@ -105,6 +109,7 @@ class Cpu
             CR4_SMXE        = 1UL << 14,        // 0x4000
             CR4_PCIDE       = 1UL << 17,        // 0x20000
             CR4_SMEP        = 1UL << 20,        // 0x100000
+            CR4_SMAP        = 1UL << 21,        // 0x200000
         };
 
         enum
@@ -159,7 +164,9 @@ class Cpu
         static uint32 name[12]              CPULOCAL;
         static uint32 features[6]           CPULOCAL;
         static bool bsp                     CPULOCAL;
-
+        static bool preemption              CPULOCAL;
+        static uint32 perf_bit_size;
+        
         static void init();
 
         ALWAYS_INLINE
@@ -177,13 +184,27 @@ class Cpu
         ALWAYS_INLINE
         static inline void preempt_disable()
         {
+            assert (preemption);
+
             asm volatile ("cli" : : : "memory");
+            preemption = false;
         }
 
         ALWAYS_INLINE
         static inline void preempt_enable()
         {
+            assert (!preemption);
+
+            preemption = true;
             asm volatile ("sti" : : : "memory");
+        }
+
+        ALWAYS_INLINE
+        static inline bool preempt_status()
+        {
+            mword flags = 0;
+            asm volatile ("pushf; pop %0" : "=r" (flags));
+            return flags & 0x200;
         }
 
         ALWAYS_INLINE

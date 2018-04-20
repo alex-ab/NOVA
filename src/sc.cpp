@@ -39,20 +39,32 @@ Sc *Sc::list[Sc::priorities];
 
 unsigned Sc::prio_top;
 
-Sc::Sc (Pd *own, mword sel, Ec *e) : Kobject (SC, static_cast<Space_obj *>(own), sel, 0x1), ec (e), cpu (static_cast<unsigned>(sel)), prio (0), budget (Lapic::freq_tsc * 1000), left (0), prev (nullptr), next (nullptr)
+Sc::Sc (Pd *own, mword sel, Ec *e) : Kobject (SC, static_cast<Space_obj *>(own), sel, 0x1, free), ec (e), cpu (static_cast<unsigned>(sel)), prio (0), budget (Lapic::freq_tsc * 1000), left (0), prev (nullptr), next (nullptr)
 {
     trace (TRACE_SYSCALL, "SC:%p created (PD:%p Kernel)", this, own);
 }
 
-Sc::Sc (Pd *own, mword sel, Ec *e, unsigned c, unsigned p, unsigned q) : Kobject (SC, static_cast<Space_obj *>(own), sel, 0x1), ec (e), cpu (c), prio (p), budget (Lapic::freq_tsc / 1000 * q), left (0), prev (nullptr), next (nullptr)
+Sc::Sc (Pd *own, mword sel, Ec *e, unsigned c, unsigned p, unsigned q) : Kobject (SC, static_cast<Space_obj *>(own), sel, 0x1, free), ec (e), cpu (c), prio (p), budget (Lapic::freq_tsc / 1000 * q), left (0), prev (nullptr), next (nullptr)
 {
     trace (TRACE_SYSCALL, "SC:%p created (EC:%p CPU:%#x P:%#x Q:%#x)", this, e, c, p, q);
 }
 
-void Sc::ready_enqueue (uint64 t)
+Sc::Sc (Pd *own, Ec *e, unsigned c, Sc *x) : Kobject (SC, static_cast<Space_obj *>(own), 0, 0x1, free), ec (e), cpu (c), prio (x->prio), budget (x->budget), left (x->left)
+{
+    trace (TRACE_SYSCALL, "SC:%p created (EC:%p CPU:%#x P:%#x Q:%#llx) - xCPU", this, e, c, prio, budget / (Lapic::freq_bus / 1000));
+}
+
+void Sc::ready_enqueue (uint64 t, bool inc_ref, bool use_left)
 {
     assert (prio < priorities);
     assert (cpu == Cpu::id);
+
+    if (inc_ref) {
+        bool ok = add_ref();
+        assert (ok);
+        if (!ok)
+            return;
+    }
 
     if (prio > prio_top)
         prio_top = prio;
@@ -63,13 +75,13 @@ void Sc::ready_enqueue (uint64 t)
         next = list[prio];
         prev = list[prio]->prev;
         next->prev = prev->next = this;
-        if (left)
+        if (use_left && left)
             list[prio] = this;
     }
 
     trace (TRACE_SCHEDULE, "ENQ:%p (%llu) PRIO:%#x TOP:%#x %s", this, left, prio, prio_top, prio > current->prio ? "reschedule" : "");
 
-    if (prio > current->prio || (this != current && prio == current->prio && left))
+    if (prio > current->prio || (this != current && prio == current->prio && (use_left && left)))
         Cpu::hazard |= HZD_SCHED;
 
     if (!left)
@@ -101,7 +113,7 @@ void Sc::ready_dequeue (uint64 t)
     tsc = t;
 }
 
-void Sc::schedule (bool suspend)
+void Sc::schedule (bool suspend, bool use_left)
 {
     Counter::print<1,16> (++Counter::schedule, Console_vga::COLOR_LIGHT_CYAN, SPN_SCH);
 
@@ -117,7 +129,10 @@ void Sc::schedule (bool suspend)
     Cpu::hazard &= ~HZD_SCHED;
 
     if (EXPECT_TRUE (!suspend))
-        current->ready_enqueue (t);
+        current->ready_enqueue (t, false, use_left);
+    else
+        if (current->del_rcu())
+            Rcu::call (current);
 
     Sc *sc = list[prio_top];
     assert (sc);
@@ -131,12 +146,19 @@ void Sc::schedule (bool suspend)
     sc->ec->activate();
 }
 
-void Sc::remote_enqueue()
+void Sc::remote_enqueue(bool inc_ref)
 {
     if (Cpu::id == cpu)
-        ready_enqueue (rdtsc());
+        ready_enqueue (rdtsc(), inc_ref);
 
     else {
+        if (inc_ref) {
+            bool ok = add_ref();
+            assert (ok);
+            if (!ok)
+                return;
+        }
+
         Sc::Rq *r = remote (cpu);
 
         Lock_guard <Spinlock> guard (r->lock);
@@ -167,7 +189,7 @@ void Sc::rrq_handler()
 
         ptr = ptr->next == ptr ? nullptr : ptr->next;
 
-        sc->ready_enqueue (t);
+        sc->ready_enqueue (t, false);
     }
 
     rq.queue = nullptr;
@@ -178,3 +200,5 @@ void Sc::rke_handler()
     if (Pd::current->Space_mem::htlb.chk (Cpu::id))
         Cpu::hazard |= HZD_SCHED;
 }
+
+void Sc::operator delete (void *ptr) { cache.free (ptr, static_cast<Sc *>(ptr)->ec->pd->quota); }

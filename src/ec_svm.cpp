@@ -104,7 +104,7 @@ void Ec::svm_invlpg()
     ret_user_vmrun();
 }
 
-void Ec::svm_cr()
+void Ec::svm_cr(mword const reason)
 {
     current->regs.svm_update_shadows();
 
@@ -134,6 +134,14 @@ void Ec::svm_cr()
             len = 3;
             break;
 
+        case 0x1:
+        {
+            bool const op_ext = (mrm >> 6) == 0x3;
+            if (op_ext && (cr == 4)) { // SMSW
+                current->regs.dst_portal = reason;
+                send_msg<ret_user_vmrun>();
+            }
+        }
         default:
             die ("SVM decode failure");
     }
@@ -164,7 +172,7 @@ void Ec::handle_svm()
     switch (reason) {
 
         case 0x0 ... 0x1f:      // CR Access
-            svm_cr();
+            svm_cr (reason);
 
         case 0x40 ... 0x5f:     // Exception
             svm_exception (reason);

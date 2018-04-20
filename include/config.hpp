@@ -30,7 +30,7 @@
 #define NUM_GSI         128
 #define NUM_LVT         6
 #define NUM_MSI         1
-#define NUM_IPI         2
+#define NUM_IPI         3
 
 #define SPN_SCH         0
 #define SPN_HLP         1
@@ -39,4 +39,4 @@
 #define SPN_VFL         5
 #define SPN_LVT         7
 #define SPN_IPI         (SPN_LVT + NUM_LVT)
-#define SPN_GSI         (SPN_IPI + NUM_IPI + 1)
+#define SPN_GSI         (SPN_IPI + NUM_IPI)

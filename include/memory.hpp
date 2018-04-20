@@ -24,6 +24,7 @@
 #define PAGE_SIZE       (1 << PAGE_BITS)
 #define PAGE_MASK       (PAGE_SIZE - 1)
 
+#define AP_BOOT_PADDR   0x1000
 #define LOAD_ADDR       0x200000
 
 #if     defined(__i386__)
@@ -32,7 +33,7 @@
 #define CPU_LOCAL       0xcfc00000
 #define SPC_LOCAL       0xd0000000
 #elif   defined(__x86_64__)
-#define USER_ADDR       0x00007ffffffff000
+#define USER_ADDR       0x00007fffc0000000
 #define LINK_ADDR       0xffffffff81000000
 #define CPU_LOCAL       0xffffffffbfe00000
 #define SPC_LOCAL       0xffffffffc0000000
@@ -41,9 +42,9 @@
 #define HV_GLOBAL_CPUS  (CPU_LOCAL - 0x1000000)
 #define HV_GLOBAL_FBUF  (CPU_LOCAL - PAGE_SIZE * 1)
 
-#define CPU_LOCAL_STCK  (SPC_LOCAL - PAGE_SIZE * 3)
-#define CPU_LOCAL_APIC  (SPC_LOCAL - PAGE_SIZE * 2)
-#define CPU_LOCAL_DATA  (SPC_LOCAL - PAGE_SIZE * 1)
+#define CPU_LOCAL_STCK  (SPC_LOCAL - PAGE_SIZE * 6)
+#define CPU_LOCAL_APIC  (SPC_LOCAL - PAGE_SIZE * 4)
+#define CPU_LOCAL_DATA  (SPC_LOCAL - PAGE_SIZE * 2)
 
 #define SPC_LOCAL_IOP   (SPC_LOCAL)
 #define SPC_LOCAL_IOP_E (SPC_LOCAL_IOP + PAGE_SIZE * 2)

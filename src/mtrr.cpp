@@ -20,6 +20,7 @@
 
 #include "msr.hpp"
 #include "mtrr.hpp"
+#include "pd.hpp"
 
 unsigned Mtrr::count;
 unsigned Mtrr::dtype;
@@ -34,8 +35,8 @@ void Mtrr::init()
     dtype = Msr::read<uint32>(Msr::IA32_MTRR_DEF_TYPE) & 0xff;
 
     for (unsigned i = 0; i < count; i++)
-        new Mtrr (Msr::read<uint64>(Msr::Register (Msr::IA32_MTRR_PHYS_BASE + 2 * i)),
-                  Msr::read<uint64>(Msr::Register (Msr::IA32_MTRR_PHYS_MASK + 2 * i)));
+        new (Pd::kern.quota) Mtrr (Msr::read<uint64>(Msr::Register (Msr::IA32_MTRR_PHYS_BASE + 2 * i)),
+                                   Msr::read<uint64>(Msr::Register (Msr::IA32_MTRR_PHYS_MASK + 2 * i)));
 }
 
 unsigned Mtrr::memtype (uint64 phys, uint64 &next)

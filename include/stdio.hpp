@@ -5,6 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -26,11 +27,12 @@
 
 #define trace(T,format,...)                                         \
 do {                                                                \
-    register mword __esp asm ("esp");                               \
-    if (EXPECT_FALSE ((trace_mask & (T)) == (T)))                   \
+    if (EXPECT_FALSE ((trace_mask & (T)) == (T))) {                 \
+        mword __esp;                                                \
         Console::print ("[%2ld] " format,                           \
-                static_cast<long>(((__esp - 1) & ~PAGE_MASK) ==     \
+                static_cast<long>(((reinterpret_cast<mword>(&__esp) - 1) & ~PAGE_MASK) ==     \
                 CPU_LOCAL_STCK ? Cpu::id : ~0UL), ## __VA_ARGS__);  \
+    }                                                               \
 } while (0)
 
 /*
@@ -52,6 +54,7 @@ enum {
     TRACE_REV       = 1UL << 19,
     TRACE_RCU       = 1UL << 20,
     TRACE_FPU       = 1UL << 23,
+    TRACE_OOM       = 1UL << 24,
     TRACE_SYSCALL   = 1UL << 30,
     TRACE_ERROR     = 1UL << 31,
 };
@@ -63,6 +66,7 @@ unsigned const trace_mask =
                             TRACE_CPU       |
                             TRACE_IOMMU     |
 #ifdef DEBUG
+//                            TRACE_OOM       |
 //                            TRACE_APIC      |
 //                            TRACE_KEYB      |
                             TRACE_VMX       |
@@ -77,6 +81,6 @@ unsigned const trace_mask =
 //                            TRACE_RCU       |
 //                            TRACE_FPU       |
 //                            TRACE_SYSCALL   |
-                            TRACE_ERROR     |
 #endif
+                            TRACE_ERROR     |
                             0;

@@ -6,6 +6,7 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
+ * Copyright (C) 2013-2014 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -25,7 +26,7 @@
 
 class Ec;
 
-class Sc : public Kobject
+class Sc : public Kobject, public Refcount
 {
     friend class Queue<Sc>;
 
@@ -36,12 +37,12 @@ class Sc : public Kobject
         uint64 const budget;
         uint64 time;
 
+        static unsigned const priorities = 128;
+
     private:
         uint64 left;
         Sc *prev, *next;
         uint64 tsc;
-
-        static unsigned const priorities = 128;
 
         static Slab_cache cache;
 
@@ -54,8 +55,18 @@ class Sc : public Kobject
 
         static unsigned prio_top CPULOCAL;
 
-        void ready_enqueue (uint64);
+        void ready_enqueue (uint64, bool, bool = true);
+
         void ready_dequeue (uint64);
+
+        static void free (Rcu_elem * a) {
+            Sc * s = static_cast<Sc *>(a);
+              
+            if (s->del_ref()) {
+                assert(Sc::current != s);
+                delete s;
+            }
+        }
 
     public:
         static Sc *     current     CPULOCAL_HOT;
@@ -67,6 +78,7 @@ class Sc : public Kobject
 
         Sc (Pd *, mword, Ec *);
         Sc (Pd *, mword, Ec *, unsigned, unsigned, unsigned);
+        Sc (Pd *, Ec *, unsigned, Sc *);
 
         ALWAYS_INLINE
         static inline Rq *remote (unsigned long c)
@@ -74,17 +86,16 @@ class Sc : public Kobject
             return reinterpret_cast<typeof rq *>(reinterpret_cast<mword>(&rq) - CPU_LOCAL_DATA + HV_GLOBAL_CPUS + c * PAGE_SIZE);
         }
 
-        void remote_enqueue();
+        void remote_enqueue(bool = true);
 
         static void rrq_handler();
         static void rke_handler();
 
         NORETURN
-        static void schedule (bool = false);
+        static void schedule (bool = false, bool = true);
 
         ALWAYS_INLINE
-        static inline void *operator new (size_t) { return cache.alloc(); }
+        static inline void *operator new (size_t, Quota &quota) { return cache.alloc(quota); }
 
-        ALWAYS_INLINE
-        static inline void operator delete (void *ptr) { cache.free (ptr); }
+        static void operator delete (void *ptr);
 };

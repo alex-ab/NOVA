@@ -28,6 +28,8 @@
 #include "hpt.hpp"
 #include "space.hpp"
 
+class Pd;
+
 class Space_mem : public Space
 {
     public:
@@ -45,10 +47,64 @@ class Space_mem : public Space
         Cpuset htlb;
         Cpuset gtlb;
 
-        static unsigned did_ctr;
+        static mword did_c [4096 / 8 / sizeof(mword)];
+        static mword did_f;
+
+        enum { LAST_PCID = sizeof(Space_mem::did_c) / sizeof(Space_mem::did_c [0]) - 1 };
+        enum { NO_PCID = 2 };
 
         ALWAYS_INLINE
-        inline Space_mem() : did (Atomic::add (did_ctr, 1U)) {}
+        static inline void boot_init()
+        {
+            bool res = !Atomic::test_set_bit (did_c[0], NO_PCID);
+            assert (res);
+        }
+
+        ALWAYS_INLINE
+        inline Space_mem() : cpus(0), htlb(~0UL), gtlb(~0UL)
+        {
+            for (mword i = ACCESS_ONCE(did_f), j = 0; j <= LAST_PCID; i++, j++)
+            {
+                i %= (LAST_PCID + 1);
+
+                if (ACCESS_ONCE(did_c[i]) == ~0UL)
+                    continue;
+
+                long b = bit_scan_forward (~did_c[i]);
+                if (b == -1) b = 0;
+
+                if (Atomic::test_set_bit (did_c[i], b)) {
+                    j--;
+                    i--;
+                    continue;
+                }
+
+                did = i * sizeof(did_c[0]) * 8 + b;
+
+                if (did_c[i] != ~0UL && did_f != i)
+                    did_f = i;
+
+                return;
+            }
+
+            did = NO_PCID;
+        }
+
+        ALWAYS_INLINE
+        inline ~Space_mem()
+        {
+            if (did == NO_PCID)
+               return;
+
+            mword i = did / (sizeof(did_c[0]) * 8);
+            mword b = did % (sizeof(did_c[0]) * 8);
+
+            assert (!((i == 0 && b == 0) || (i == 0 && b == 1)));
+            assert (i <= LAST_PCID);
+
+            bool s = Atomic::test_clr_bit (did_c[i], b);
+            assert(s);
+        }
 
         ALWAYS_INLINE
         inline size_t lookup (mword virt, Paddr &phys)
@@ -58,25 +114,30 @@ class Space_mem : public Space
         }
 
         ALWAYS_INLINE
-        inline void insert (mword virt, unsigned o, mword attr, Paddr phys)
+        inline void insert (Quota &quota, mword virt, unsigned o, mword attr, Paddr phys)
         {
-            hpt.update (virt, o, phys, attr);
+            hpt.update (quota, virt, o, phys, attr);
         }
 
         ALWAYS_INLINE
-        inline Paddr replace (mword v, Paddr p)
+        inline Paddr replace (Quota &quota, mword v, Paddr p)
         {
-            return hpt.replace (v, p);
+            return hpt.replace (quota, v, p);
         }
 
         INIT
-        void insert_root (uint64, uint64, mword = 0x7);
+        void insert_root (Quota &quota, uint64, uint64, mword = 0x7);
 
-        bool insert_utcb (mword);
+        bool insert_utcb (Quota &quota, mword, mword = 0);
 
-        void update (Mdb *, mword = 0);
+        bool remove_utcb (mword);
 
-        static void shootdown();
+        bool update (Quota_guard &quota, Mdb *, mword = 0);
 
-        void init (unsigned);
+        static void shootdown(Pd *);
+
+        void init (Quota &quota, unsigned);
+
+        ALWAYS_INLINE
+        inline mword sticky_sub(mword s) { return s & 0x4; }
 };

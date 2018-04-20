@@ -27,6 +27,7 @@
 #include "ioapic.hpp"
 #include "lapic.hpp"
 #include "vectors.hpp"
+#include "pd.hpp"
 
 void Acpi_table_madt::parse() const
 {
@@ -64,7 +65,7 @@ void Acpi_table_madt::parse_ioapic (Acpi_apic const *ptr)
 {
     Acpi_ioapic const *p = static_cast<Acpi_ioapic const *>(ptr);
 
-    Ioapic *ioapic = new Ioapic (p->phys, p->id, p->gsi);
+    Ioapic *ioapic = new (Pd::kern.quota) Ioapic (p->phys, p->id, p->gsi);
 
     unsigned gsi = p->gsi;
     unsigned max = ioapic->irt_max();

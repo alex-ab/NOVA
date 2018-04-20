@@ -5,6 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -36,14 +37,40 @@ class Pd : public Kobject, public Refcount, public Space_mem, public Space_pio, 
         WARN_UNUSED_RESULT
         mword clamp (mword &, mword &, mword, mword, mword);
 
+        static void pre_free (Rcu_elem * a)
+        {
+            Pd * pd = static_cast <Pd *>(a);
+
+            Crd crd(Crd::MEM);
+            pd->revoke<Space_mem>(crd.base(), crd.order(), crd.attr(), true, false);
+
+            crd = Crd(Crd::PIO);
+            pd->revoke<Space_pio>(crd.base(), crd.order(), crd.attr(), true, false);
+
+            crd = Crd(Crd::OBJ);
+            pd->revoke<Space_obj>(crd.base(), crd.order(), crd.attr(), true, false);
+        }
+
+        static void free (Rcu_elem * a) {
+            Pd * pd = static_cast <Pd *>(a);
+
+            if (pd->del_ref()) {
+                assert (pd != Pd::current);
+                delete pd;
+            }
+        }
+
     public:
         static Pd *current CPULOCAL_HOT;
         static Pd kern, root;
 
+        Quota quota;
+
         INIT
         Pd (Pd *);
+        ~Pd();
 
-        Pd (Pd *own, mword sel, mword a) : Kobject (PD, static_cast<Space_obj *>(own), sel, a) {}
+        Pd (Pd *own, mword sel, mword a);
 
         ALWAYS_INLINE HOT
         inline void make_current()
@@ -58,10 +85,17 @@ class Pd : public Kobject, public Refcount, public Space_mem, public Space_pio, 
                 if (EXPECT_TRUE (current == this))
                     return;
 
-                pcid |= static_cast<mword>(1ULL << 63);
+                if (pcid != NO_PCID)
+                    pcid |= static_cast<mword>(1ULL << 63);
             }
 
+            if (current->del_rcu())
+                Rcu::call (current);
+
             current = this;
+
+            bool ok = current->add_ref();
+            assert (ok);
 
             loc[Cpu::id].make_current (Cpu::feature (Cpu::FEAT_PCID) ? pcid : 0);
         }
@@ -85,20 +119,28 @@ class Pd : public Kobject, public Refcount, public Space_mem, public Space_pio, 
         }
 
         template <typename>
-        void delegate (Pd *, mword, mword, mword, mword, mword = 0);
+        bool delegate (Pd *, mword, mword, mword, mword, mword = 0, char const * = nullptr);
 
         template <typename>
-        void revoke (mword, mword, mword, bool);
+        void revoke (mword, mword, mword, bool, bool);
 
         void xfer_items (Pd *, Crd, Crd, Xfer *, Xfer *, unsigned long);
 
         void xlt_crd (Pd *, Crd, Crd &);
         void del_crd (Pd *, Crd, Crd &, mword = 0, mword = 0);
-        void rev_crd (Crd, bool);
+        void rev_crd (Crd, bool, bool, bool);
 
         ALWAYS_INLINE
-        static inline void *operator new (size_t) { return cache.alloc(); }
+        static inline void *operator new (size_t, Quota &quota) { return cache.alloc(quota); }
 
         ALWAYS_INLINE
-        static inline void operator delete (void *ptr) { cache.free (ptr); }
+        static inline void operator delete (void *ptr)
+        {
+            Pd *pd_del = static_cast<Pd *>(ptr);
+            Pd *pd_to  = static_cast<Pd *>(static_cast<Space_obj *>(pd_del->space));
+
+            pd_del->quota.free_up(pd_to->quota);
+
+            cache.free (ptr, pd_to->quota);
+        }
 };
