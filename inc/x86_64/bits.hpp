@@ -1,10 +1,11 @@
 /*
- * Bit Scan Functions
+ * Bit Functions
  *
  * Copyright (C) 2009-2011 Udo Steinberg <udo@hypervisor.org>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
- * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -20,52 +21,92 @@
 
 #pragma once
 
+#include "macros.hpp"
 #include "types.hpp"
 #include "util.hpp"
 
-ALWAYS_INLINE
-inline long int bit_scan_reverse (mword val)
+/*
+ * Compute the bit index of the least significant 1-bit
+ */
+static constexpr int bit_scan_lsb (unsigned long v)
 {
-    if (!val) [[unlikely]]
-        return -1;
-
-    asm volatile ("bsr %1, %0" : "=r" (val) : "rm" (val));
-
-    return val;
+    return !v ? -1 : __builtin_ctzl (v);
 }
 
-ALWAYS_INLINE
-inline long int bit_scan_forward (mword val)
+/*
+ * Compute the bit index of the most significant 1-bit
+ */
+static constexpr int bit_scan_msb (unsigned long v)
 {
-    if (!val) [[unlikely]]
-        return -1;
-
-    asm volatile ("bsf %1, %0" : "=r" (val) : "rm" (val));
-
-    return val;
+    return !v ? -1 : 8 * sizeof (v) - 1 - __builtin_clzl (v);
 }
 
-ALWAYS_INLINE
-inline unsigned long max_order (mword base, size_t size)
+/*
+ * Compute the largest order under size and alignment constraints
+ *
+ * @param size  Must be non-zero and >= 2^o
+ * @param addr  Must be a multiple of 2^o
+ * @return      The largest o that satisfies the above constraints
+ */
+static constexpr unsigned aligned_order (size_t size, uintptr_t addr)
 {
-    long int o = bit_scan_reverse (size);
+    auto o { bit_scan_msb (size) };
 
-    if (base)
-        o = min (bit_scan_forward (base), o);
+    if (addr) [[likely]]
+        o = min (o, bit_scan_lsb (addr));
 
     return o;
 }
 
-ALWAYS_INLINE
-static inline mword align_dn (mword val, mword align)
+/*
+ * Compute the largest order under size and alignment constraints
+ *
+ * @param size  Must be non-zero and >= 2^o
+ * @param addr1 Must be a multiple of 2^o
+ * @param addr2 Must be a multiple of 2^o
+ * @return      The largest o that satisfies the above constraints
+ */
+static constexpr unsigned aligned_order (size_t size, uintptr_t addr1, uintptr_t addr2)
 {
-    val &= ~(align - 1);                // Expect power-of-2
-    return val;
+    auto o { bit_scan_msb (size) };
+
+    if (addr1) [[likely]]
+        o = min (o, bit_scan_lsb (addr1));
+
+    if (addr2) [[likely]]
+        o = min (o, bit_scan_lsb (addr2));
+
+    return o;
 }
 
-ALWAYS_INLINE
-static inline mword align_up (mword val, mword align)
+/*
+ * Align value down
+ *
+ * @param a     Alignment (must be a power of 2)
+ * @param v     Value
+ * @return      Aligned value
+ */
+static constexpr auto aligned_dn (uintptr_t a, uintptr_t v)
 {
-    val += (align - 1);                 // Expect power-of-2
-    return align_dn (val, align);
+    v &= ~(a - 1);
+    return v;
 }
+
+/*
+ * Align value up
+ *
+ * @param a     Alignment (must be a power of 2)
+ * @param v     Value
+ * @return      Aligned value
+ */
+static constexpr auto aligned_up (uintptr_t a, uintptr_t v)
+{
+    v += (a - 1);
+    return aligned_dn (a, v);
+}
+
+// Sanity checks
+static_assert (bit_scan_lsb (0) == -1);
+static_assert (bit_scan_msb (0) == -1);
+static_assert (bit_scan_lsb (BIT64_RANGE (55, 5)) == 5);
+static_assert (bit_scan_msb (BIT64_RANGE (55, 5)) == 55);
