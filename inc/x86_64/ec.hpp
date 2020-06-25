@@ -60,8 +60,8 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
 
         static Slab_cache cache;
 
-        REGPARM (1)
         static void handle_exc (Exc_regs *) asm ("exc_handler");
+        static void handle_ist (Exc_regs *) asm ("ist_handler");
 
         [[noreturn]]
         static void handle_vmx() asm ("vmx_handler");
@@ -69,11 +69,7 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         [[noreturn]]
         static void handle_svm() asm ("svm_handler");
 
-        [[noreturn]]
-        static void handle_tss() asm ("tss_handler");
-
         static void handle_exc_nm();
-        static bool handle_exc_ts (Exc_regs *);
         static bool handle_exc_gp (Exc_regs *);
         static bool handle_exc_pf (Exc_regs *);
 
@@ -115,8 +111,8 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         ALWAYS_INLINE
         inline void redirect_to_iret()
         {
-            regs.REG(sp) = regs.ARG_SP;
-            regs.REG(ip) = regs.ARG_IP;
+            regs.rsp = regs.ARG_SP;
+            regs.rip = regs.ARG_IP;
         }
 
         void load_fpu();
@@ -163,7 +159,7 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
 
             pd->make_current();
 
-            asm volatile ("mov %0," EXPAND (PREG(sp);) "jmp *%1" : : "g" (CPU_LOCAL_STCK + PAGE_SIZE), "q" (cont) : "memory"); UNREACHED;
+            asm volatile ("mov %0, %%rsp; jmp *%1" : : "g" (CPU_LOCAL_STCK + PAGE_SIZE), "q" (cont) : "memory"); UNREACHED;
         }
 
         ALWAYS_INLINE

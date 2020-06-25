@@ -68,17 +68,6 @@ class Cpu
 
         enum
         {
-            EXC_DB          = 1,
-            EXC_NM          = 7,
-            EXC_TS          = 10,
-            EXC_GP          = 13,
-            EXC_PF          = 14,
-            EXC_AC          = 17,
-            EXC_MC          = 18,
-        };
-
-        enum
-        {
             CR0_PE          = 1ul << 0,         // 0x1
             CR0_MP          = 1ul << 1,         // 0x2
             CR0_EM          = 1ul << 2,         // 0x4

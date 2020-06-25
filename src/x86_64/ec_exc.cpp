@@ -76,17 +76,6 @@ void Ec::handle_exc_nm()
     fpowner = current;
 }
 
-bool Ec::handle_exc_ts (Exc_regs *r)
-{
-    if (r->user())
-        return false;
-
-    // SYSENTER with EFLAGS.NT=1 and IRET faulted
-    r->REG(fl) &= ~Cpu::EFL_NT;
-
-    return true;
-}
-
 bool Ec::handle_exc_gp (Exc_regs *)
 {
     if (Cpu::hazard & HZD_TR) {
@@ -130,32 +119,38 @@ void Ec::handle_exc (Exc_regs *r)
 
     switch (r->vec) {
 
-        case Cpu::EXC_NM:
+        case EXC_NM:
             handle_exc_nm();
             return;
 
-        case Cpu::EXC_TS:
-            if (handle_exc_ts (r))
-                return;
-            break;
-
-        case Cpu::EXC_GP:
+        case EXC_GP:
             if (handle_exc_gp (r))
                 return;
             break;
 
-        case Cpu::EXC_PF:
+        case EXC_PF:
             if (handle_exc_pf (r))
                 return;
             break;
 
-        case Cpu::EXC_MC:
-            Mca::vector();
-            break;
     }
 
     if (r->user())
         send_msg<ret_user_iret>();
+
+    die ("EXC", r);
+}
+
+void Ec::handle_ist (Exc_regs *r)
+{
+    switch (r->vec) {
+
+        case EXC_NMI:
+            return;
+
+        case EXC_MC:
+            return Mca::vector();
+    }
 
     die ("EXC", r);
 }
