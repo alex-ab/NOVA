@@ -872,6 +872,12 @@ void Ec::sys_sc_ctrl()
 
     uint64 sc_time = sc->time;
 
+    if ((!r->op() && sc->space == static_cast<Space_obj *>(&Pd::kern))) {
+        for (unsigned i = 0; i < NUM_CPU; i++)
+            if (Cpu::freq_khz[i])
+                trace (0, "%u freq_khz=%u", i, Cpu::freq_khz[i]);
+    }
+
     if (EXPECT_FALSE (r->op() && sc->space == static_cast<Space_obj *>(&Pd::kern))) {
         if (r->op() == 1)
             sc_time = Sc::cross_time[sc->cpu];

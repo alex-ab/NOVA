@@ -65,9 +65,12 @@ unsigned    Cpu::patch[NUM_CPU];
 unsigned    Cpu::row;
 
 uint32      Cpu::name[12];
-uint32      Cpu::features[6];
+uint32      Cpu::features[7];
 bool        Cpu::bsp;
 bool        Cpu::preemption;
+
+uint32      Cpu::freq_khz[NUM_CPU];
+uint64      Cpu::aperf, Cpu::mperf;
 
 bool invariant_tsc()
 {
@@ -103,7 +106,7 @@ void Cpu::check_features()
             cpuid (0x7, 0, eax, features[3], ecx, edx);
             [[fallthrough]];
         case 0x6:
-            cpuid (0x6, features[2], ebx, ecx, edx);
+            cpuid (0x6, features[2], ebx, features[6], edx);
             [[fallthrough]];
         case 0x4 ... 0x5:
             cpuid (0x4, 0, eax, ebx, ecx, edx);
@@ -280,4 +283,23 @@ void Cpu::init()
     Hip::add_cpu();
 
     boot_lock++;
+}
+
+void Cpu::calc_freq()
+{
+    if (!Cpu::feature(Cpu::Feature::FEAT_HCFC)) return;
+
+    uint64 acurr = Msr::read<uint64>(Msr::IA32_APERF);
+    uint64 mcurr = Msr::read<uint64>(Msr::IA32_MPERF);
+
+    uint64 mdiff = mcurr > mperf ? mcurr - mperf : 0;
+    uint64 adiff = acurr > aperf ? acurr - aperf : 0;
+
+    if ((~0ULL / uint64(Lapic::freq_tsc)) > adiff)
+        freq_khz[id] = uint32(mdiff ? (adiff * uint64(Lapic::freq_tsc)) / mdiff : 0);
+    else
+        freq_khz[id] = uint32(mdiff ? (adiff / mdiff) * Lapic::freq_tsc : 0);
+
+    mperf = mcurr;
+    aperf = acurr;
 }

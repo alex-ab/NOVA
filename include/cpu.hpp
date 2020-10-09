@@ -67,6 +67,7 @@ class Cpu
             FEAT_1GB_PAGES      = 154,
             FEAT_CMP_LEGACY     = 161,
             FEAT_SVM            = 162,
+            FEAT_HCFC           = 192,
         };
 
         enum
@@ -155,6 +156,8 @@ class Cpu
         static uint8    stepping[NUM_CPU];
         static unsigned patch[NUM_CPU];
 
+        static uint32   freq_khz[NUM_CPU];
+
         static unsigned id                  CPULOCAL_HOT;
         static unsigned hazard              CPULOCAL_HOT;
         static Vendor   vendor              CPULOCAL;
@@ -162,9 +165,12 @@ class Cpu
         static unsigned row                 CPULOCAL;
 
         static uint32 name[12]              CPULOCAL;
-        static uint32 features[6]           CPULOCAL;
+        static uint32 features[7]           CPULOCAL;
         static bool bsp                     CPULOCAL;
         static bool preemption              CPULOCAL;
+
+        static uint64 aperf                 CPULOCAL;
+        static uint64 mperf                 CPULOCAL;
 
         static void init();
 
@@ -227,4 +233,6 @@ class Cpu
 
             return ~0U;
         }
+
+        static void calc_freq();
 };

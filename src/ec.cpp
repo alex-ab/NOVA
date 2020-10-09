@@ -395,6 +395,8 @@ void Ec::idle()
 {
     for (;;) {
 
+        Cpu::calc_freq();
+
         mword hzd = Cpu::hazard & (HZD_RCU | HZD_SCHED);
         if (EXPECT_FALSE (hzd))
             handle_hazard (hzd, idle);
