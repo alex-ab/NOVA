@@ -131,7 +131,6 @@ void Ec::handle_exc (Exc_regs *r)
             if (handle_exc_pf (r))
                 return;
             break;
-
     }
 
     if (r->user())
