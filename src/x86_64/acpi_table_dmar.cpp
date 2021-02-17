@@ -22,17 +22,17 @@
 
 #include "acpi_table_dmar.hpp"
 #include "cmdline.hpp"
-#include "dmar.hpp"
 #include "hip.hpp"
 #include "hpet.hpp"
 #include "ioapic.hpp"
 #include "pci.hpp"
-#include "pd.hpp"
+#include "smmu.hpp"
+#include "space_dma.hpp"
 #include "stdio.hpp"
 
 void Acpi_table_dmar::Remapping_drhd::parse() const
 {
-    auto const smmu { new Dmar { phys } };
+    auto const smmu { new Smmu { phys } };
     if (EXPECT_FALSE (!smmu))
         panic ("SMMU allocation failed");
 
@@ -73,15 +73,15 @@ void Acpi_table_dmar::Remapping_rmrr::parse() const
 
         trace (TRACE_FIRM | TRACE_PARSE, "RMRR: %#010lx-%#010lx Scope Type %u Device %04x:%02x:%02x.%x", b, l, std::to_underlying (s->type()), Pci::seg (d), Pci::bus (d), Pci::dev (d), Pci::fun (d));
 
-        Dmar *dmar { nullptr };
+        Smmu *smmu { nullptr };
 
         switch (s->type()) {
-            case Scope::Type::PCI_EP: dmar = Pci::find_dmar (d); break;
+            case Scope::Type::PCI_EP: smmu = Pci::find_smmu (d); break;
             default: break;
         }
 
-        if (dmar)
-            dmar->assign (d, &Pd::kern);
+        if (smmu && !smmu->configured (d))
+            smmu->configure (&Space_dma::nova, d, false);
 
         ptr += s->length;
     }
@@ -89,6 +89,9 @@ void Acpi_table_dmar::Remapping_rmrr::parse() const
 
 void Acpi_table_dmar::parse() const
 {
+    if ((Smmu::ir = flags & BIT (0)))
+        Lapic::x2apic &= !(flags & BIT (1));
+
     if (EXPECT_FALSE (Cmdline::nosmmu))
         return;
 
@@ -104,8 +107,6 @@ void Acpi_table_dmar::parse() const
 
         ptr += r->length;
     }
-
-    Dmar::enable (flags);
 
     Hip::hip->set_feature (Hip::FEAT_SMMU);
 }
