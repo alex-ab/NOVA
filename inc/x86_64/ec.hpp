@@ -186,7 +186,7 @@ class Ec : public Kobject, public Queue<Sc>
         {
             if (cont != dead) [[likely]] {
 
-                Counter::helping++;
+                Counter::helping.inc();
 
                 current->cont = c;
 
