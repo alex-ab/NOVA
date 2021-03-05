@@ -873,9 +873,14 @@ void Ec::sys_sc_ctrl()
     uint64 sc_time = sc->time;
 
     if ((!r->op() && sc->space == static_cast<Space_obj *>(&Pd::kern))) {
-        for (unsigned i = 0; i < NUM_CPU; i++)
-            if (Cpu::freq_khz[i])
-                trace (0, "%u freq_khz=%u", i, Cpu::freq_khz[i]);
+        if (sc->cpu < NUM_CPU) {
+
+            if (Cpu::id == sc->cpu)
+                Cpu::calc_freq();
+
+            if (Cpu::freq_khz[sc->cpu])
+                trace (0, "%u freq_khz=%u", sc->cpu, Cpu::freq_khz[sc->cpu]);
+        }
     }
 
     if (EXPECT_FALSE (r->op() && sc->space == static_cast<Space_obj *>(&Pd::kern))) {
