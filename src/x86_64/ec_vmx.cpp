@@ -50,7 +50,7 @@ void Ec::vmx_exception()
             ret_user_vmresume();
     }
 
-    current->regs.dst_portal = Vmcs::VMX_EXC_NMI;
+    current->exc_regs().set_ep (Vmcs::VMX_EXC_NMI);
 
     send_msg<ret_user_vmresume>();
 }
@@ -73,7 +73,7 @@ void Ec::handle_vmx()
         case Vmcs::VMX_EXTINT:      vmx_extint();
     }
 
-    current->regs.dst_portal = reason;
+    current->exc_regs().set_ep (reason);
 
     send_msg<ret_user_vmresume>();
 }
