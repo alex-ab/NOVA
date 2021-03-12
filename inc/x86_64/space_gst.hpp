@@ -1,5 +1,5 @@
 /*
- * Memory Space
+ * Guest Memory Space
  *
  * Copyright (C) 2009-2011 Udo Steinberg <udo@hypervisor.org>
  * Economic rights: Technische Universitaet Dresden (Germany)
@@ -21,23 +21,28 @@
 
 #pragma once
 
-#include "bits.hpp"
-#include "memattr.hpp"
-#include "paging.hpp"
-#include "space.hpp"
-#include "status.hpp"
+#include "cpuset.hpp"
+#include "ptab_ept.hpp"
+#include "space_mem.hpp"
 
-class Space_hst;
-
-template<typename T> class Space_mem : public Space
+class Space_gst : public Space_mem<Space_gst>
 {
-    protected:
-        static void access_ctrl (T &mem, uint64_t phys, size_t size, Paging::Permissions perm, Memattr attr)
-        {
-            for (unsigned o; size; size -= BITN (o), phys += BITN (o))
-                mem.update (phys, phys, (o = aligned_order (size, phys)) - PAGE_BITS, perm, attr);
-        }
+    private:
+        Eptp    eptp;
 
     public:
-        Status delegate (Space_hst const *, unsigned long, unsigned long, unsigned, unsigned, Memattr);
+        Cpuset  gtlb;
+
+        static constexpr auto selectors() { return BIT64 (Ept::ibits - PAGE_BITS); }
+        static           auto max_order() { return Ept::lev_ord(); }
+
+        auto lookup (uint64_t v, uint64_t &p, unsigned &o, Memattr &ma) const { return eptp.lookup (v, p, o, ma); }
+
+        auto update (uint64_t v, uint64_t p, unsigned o, Paging::Permissions pm, Memattr ma) { return eptp.update (v, p, o, pm, ma); }
+
+        void sync() { gtlb.set(); }
+
+        void invalidate() { eptp.invalidate(); }
+
+        auto get_phys() const { return eptp.root_addr(); }
 };
