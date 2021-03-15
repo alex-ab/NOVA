@@ -115,7 +115,7 @@ struct Sys_create_sm final : private Sys_abi
 
     unsigned long pd() const { return p1(); }
 
-    mword cnt() const { return p2(); }
+    uint64_t cnt() const { return p2(); }
 };
 
 struct Sys_ctrl_pd final : private Sys_abi
@@ -170,13 +170,13 @@ struct Sys_ctrl_sm final : private Sys_abi
 {
     Sys_ctrl_sm (Sys_regs &r) : Sys_abi { r } {}
 
+    bool op() const { return flags() & BIT (0); }
+
+    bool zc() const { return flags() & BIT (1); }
+
     unsigned long sm() const { return p0() >> 8; }
 
-    unsigned op() const { return flags() & 0x1; }
-
-    unsigned zc() const { return flags() & 0x2; }
-
-    uint64_t time() const { return static_cast<uint64_t>(p1()) << 32 | p2(); }
+    uint64_t time_ticks() const { return p1(); }
 };
 
 struct Sys_ctrl_hw final : private Sys_abi
@@ -196,15 +196,13 @@ struct Sys_assign_int final : private Sys_abi
 
     unsigned long sm() const { return p0() >> 8; }
 
-    auto dev() const { return p1(); }
+    auto cpu() const { return static_cast<uint16_t> (p1()); }
 
-    unsigned cpu() const { return static_cast<unsigned>(p2()); }
+    auto dev() const { return static_cast<uint16_t> (p2()); }
 
-    void set_msi (uint64_t val)
-    {
-        p1() = static_cast<mword>(val >> 32);
-        p2() = static_cast<mword>(val);
-    }
+    void set_msi_addr (uint32_t val) { p1() = val; }
+
+    void set_msi_data (uint16_t val) { p2() = val; }
 };
 
 struct Sys_assign_dev final : private Sys_abi
