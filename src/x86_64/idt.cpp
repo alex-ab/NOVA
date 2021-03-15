@@ -27,7 +27,7 @@ void Idt::build()
 {
     uintptr_t *ptr { handlers };
 
-    for (unsigned vector { 0 }; vector < VEC_MAX; vector++, ptr++)
+    for (unsigned vector { 0 }; vector < sizeof (idt) / sizeof (*idt); vector++, ptr++)
         if (*ptr)
             idt[vector] = Descriptor_idt { Descriptor_idt::Type::SYS_INTR_GATE, static_cast<unsigned>(*ptr & 3), SEL_KERN_CODE, *ptr & ~3 };
 }
