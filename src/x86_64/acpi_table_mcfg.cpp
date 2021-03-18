@@ -33,23 +33,12 @@ void Acpi_table_mcfg::Segment::parse (char const (&oem)[6], char const (&tbl)[8]
         if (!strncmp (quirk[i].oem, oem, sizeof (oem)) && !strncmp (quirk[i].tbl, tbl, sizeof (tbl)) && quirk[i].seg & BIT64 (seg))
             unusable = true;
 
-    // We only handle PCI segment group 0 currently
-    if (EXPECT_FALSE (unusable || seg)) {
+    if (EXPECT_FALSE (unusable || !Pci::init_seg (phys_base, seg, sbn, ebn)))
         trace (TRACE_FIRM, "WARN: PCI Segment %#x unusable", uint16_t { seg });
-        return;
-    }
-
-    trace (TRACE_FIRM, "MCFG: Bus %#04x-%#04x", uint8_t { sbn }, uint8_t { ebn });
-
-    Pci::bus_base = 0;
-    Pci::cfg_base = phys_base;
-    Pci::cfg_size = (ebn + 1) * 256 * PAGE_SIZE (0);
 }
 
 void Acpi_table_mcfg::parse() const
 {
     for (auto ptr { reinterpret_cast<uintptr_t>(this + 1) }; ptr < reinterpret_cast<uintptr_t>(this) + table.header.length; ptr += sizeof (Segment))
         reinterpret_cast<Segment const *>(ptr)->parse (table.oem_id, table.oem_table_id);
-
-    Pci::init();
 }
