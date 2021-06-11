@@ -22,7 +22,6 @@
 
 #include "arch.hpp"
 #include "entry.hpp"
-#include "memory.hpp"
 #include "vectors.hpp"
 
 .data
@@ -78,7 +77,7 @@ INTRGATE                0
                         testb   $3, OFS_CS(%rbx)
                         jz      1f
                         cld
-                        lea     CPU_LOCAL_STCK + PAGE_SIZE, %rsp
+                        lea     DSTK_TOP, %rsp
 1:
 .endm
 
@@ -192,7 +191,7 @@ entry_sys:              mov     %rsp, %r11
                         mov     tss_run + 4, %rsp
                         lea     -(__SIZEOF_POINTER__ * 8)(%rsp), %rsp
                         SAVE_GPR
-                        lea     CPU_LOCAL_STCK + PAGE_SIZE, %rsp
+                        lea     DSTK_TOP, %rsp
                         and     $0xf, %rdi
                         jmp     *syscall(, %rdi, __SIZEOF_POINTER__)
 
@@ -204,5 +203,5 @@ entry_sys:              mov     %rsp, %r11
 entry_vmx:              SAVE_GPR
                         mov     %cr2, %rax
                         mov     %rax, OFS_CR2(%rsp)
-                        lea     CPU_LOCAL_STCK + PAGE_SIZE, %rsp
+                        lea     DSTK_TOP, %rsp
                         jmp     vmx_handler
