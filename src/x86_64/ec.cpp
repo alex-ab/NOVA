@@ -166,7 +166,7 @@ void Ec::ret_user_vmresume()
 
     current->regs.vmcs->make_current();
 
-    if (Pd::current->gtlb.chk (Cpu::id)) [[unlikely]] {
+    if (Pd::current->gtlb.tst (Cpu::id)) [[unlikely]] {
         Pd::current->gtlb.clr (Cpu::id);
         Pd::current->ept.flush();
     }
@@ -191,7 +191,7 @@ void Ec::ret_user_vmrun()
     if (hzd) [[unlikely]]
         handle_hazard (hzd, ret_user_vmrun);
 
-    if (Pd::current->gtlb.chk (Cpu::id)) [[unlikely]] {
+    if (Pd::current->gtlb.tst (Cpu::id)) [[unlikely]] {
         Pd::current->gtlb.clr (Cpu::id);
         current->regs.vmcb->tlb_control = 1;
     }
