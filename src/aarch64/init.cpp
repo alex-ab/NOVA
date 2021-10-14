@@ -35,7 +35,13 @@ extern "C" void preinit()
 
 extern "C" unsigned init()
 {
-    if (!Acpi::resume) {
+    if (Acpi::resume) {
+
+        // Restart all cores
+        for (cpu_t c { 0 }; c < Cpu::count; c++)
+            Psci::boot_cpu (c, Cpu::remote_mpidr (c));
+
+    } else {
 
         Buddy::init();
 
@@ -49,5 +55,5 @@ extern "C" unsigned init()
 
     Fdt::init();
 
-    return 0;
+    return Cpu::boot_cpu;
 }
