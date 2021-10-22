@@ -465,6 +465,12 @@ void Ec::root_invoke()
     Space_obj::insert_root (Pd::kern.quota, Ec::current);
     Space_obj::insert_root (Pd::kern.quota, Sc::current);
 
+    /* capability for MSR user access */
+    auto msr_cap = new (Pd::root) Sm (&Pd::kern, NUM_EXC + 3);
+    Msr::msr_cap = msr_cap;
+    Space_obj::insert_root (Pd::kern.quota, Msr::msr_cap);
+    msr_cap->add_ref();
+
     /* adjust root quota used by Pd::kern during bootstrap */
     Quota::boot(Pd::kern.quota, Pd::root.quota);
 

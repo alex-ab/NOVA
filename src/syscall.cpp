@@ -849,6 +849,19 @@ void Ec::sys_ec_ctrl()
             break;
         }
 
+        case 6: /* MSR */
+        {
+            if (!current->utcb)
+                sys_finish<Sys_regs::BAD_PAR>();
+
+            Capability cap = Space_obj::lookup (r->ec());
+            if (!Msr::msr_cap || cap.obj() != Msr::msr_cap)
+                sys_finish<Sys_regs::BAD_CAP>();
+
+            Msr::user_access(*(current->utcb));
+            break;
+        }
+
         default:
             sys_finish<Sys_regs::BAD_PAR>();
     }
