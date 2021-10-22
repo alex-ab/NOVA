@@ -24,8 +24,16 @@
 #include "compiler.hpp"
 #include "types.hpp"
 
+struct Utcb;
+struct Kobject;
+
 class Msr
 {
+    private:
+
+        static void user_access_amd(Utcb &);
+        static void user_access_intel(Utcb &);
+
     public:
 
         // MSRs starting with IA32_ are architectural
@@ -39,6 +47,8 @@ class Msr
             IA32_SMM_MONITOR_CTL    = 0x9b,
             MSR_FSB_FREQ            = 0xcd,
             MSR_PLATFORM_INFO       = 0xce,
+            IA32_MPERF              = 0xe7,
+            IA32_APERF              = 0xe8,
             IA32_MTRR_CAP           = 0xfe,
             IA32_SYSENTER_CS        = 0x174,
             IA32_SYSENTER_ESP       = 0x175,
@@ -49,6 +59,9 @@ class Msr
             IA32_THERM_INTERRUPT    = 0x19b,
             IA32_THERM_STATUS       = 0x19c,
             IA32_MISC_ENABLE        = 0x1a0,
+            MSR_TEMPERATURE_TARGET  = 0x1a2,
+            IA32_ENERGY_PERF_BIAS   = 0x1b0,
+            IA32_THERM_PKG_STATUS   = 0x1b1,
             IA32_DEBUG_CTL          = 0x1d9,
             IA32_MTRR_PHYS_BASE     = 0x200,
             IA32_MTRR_PHYS_MASK     = 0x201,
@@ -82,6 +95,12 @@ class Msr
 
             IA32_DS_AREA            = 0x600,
             IA32_TSC_DEADLINE       = 0x6e0,
+
+            IA32_PM_ENABLE          = 0x770,
+            IA32_HWP_CAPABILITIES   = 0x771,
+            IA32_HWP_REQUEST_PKG    = 0x772,
+            IA32_HWP_REQUEST        = 0x774,
+
             IA32_EXT_XAPIC          = 0x800,
             IA32_EFER               = 0xc0000080,
             IA32_STAR               = 0xc0000081,
@@ -92,6 +111,9 @@ class Msr
             IA32_TSC_AUX            = 0xc0000103,
 
             AMD_IPMR                = 0xc0010055,
+            AMD_PSTATE_LIMIT        = 0xc0010061,
+            AMD_PSTATE_CTRL         = 0xc0010062,
+            AMD_PSTATE_STATUS       = 0xc0010063,
             AMD_SVM_VM_CR           = 0xc0010114,
             AMD_SVM_HSAVE_PA        = 0xc0010117,
         };
@@ -118,4 +140,8 @@ class Msr
         {
             asm volatile ("wrmsr" : : "a" (static_cast<mword>(val)), "d" (static_cast<mword>(static_cast<uint64>(val) >> 32)), "c" (msr));
         }
+
+        static Kobject * msr_cap;
+
+        static void user_access(Utcb &);
 };

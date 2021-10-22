@@ -137,6 +137,28 @@ class Utcb : public Utcb_head, private Utcb_data
 
         ALWAYS_INLINE
         static inline void destroy(Utcb *obj, Quota &quota) { obj->~Utcb(); Buddy::allocator.free (reinterpret_cast<mword>(obj), quota); }
+
+        template <typename R, typename W>
+        void for_each_word (R const &fn_read, W const &fn_write)
+        {
+            mword const write_bit = 29;
+            mword const max = min(ui(), sizeof(mword)*8 - 1);
+            mword success = 0;
+            for (unsigned i = 0; i < max; i++) {
+                bool const write = !!(mr[i] & (1ul << write_bit));
+                if (write) {
+                    if (i + 1 >= max) break;
+
+                    if (fn_write(mr[i] & ~(1ul << write_bit), mr[i+1]))
+                        success |= 3ul << i;
+
+                    i += 1;
+                } else
+                    if (fn_read(mr[i]))
+                        success |= 1ul << i;
+            }
+            items = success;
+        }
 };
 
 static_assert (sizeof(Utcb) == 4096, "Unsupported size of Utcb");

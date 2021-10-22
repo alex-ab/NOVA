@@ -31,6 +31,7 @@
 #define EC_ROOTTASK     NUM_EXC + 1
 #define SC_ROOTTASK     NUM_EXC + 2
 #define SM_ACPI_SUSPEND NUM_EXC + 3
+#define SM_MSR_ACCESS   NUM_EXC + 4
 #define NUM_VMI         256
 #define NUM_GSI         192
 #define NUM_LVT         6
