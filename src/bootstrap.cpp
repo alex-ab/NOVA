@@ -21,6 +21,7 @@
 
 #include "compiler.hpp"
 #include "ec.hpp"
+#include "sm.hpp"
 #include "hip.hpp"
 #include "msr.hpp"
 
