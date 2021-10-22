@@ -65,7 +65,7 @@ unsigned    Cpu::patch[NUM_CPU];
 unsigned    Cpu::row;
 
 uint32      Cpu::name[12];
-uint32      Cpu::features[6];
+uint32      Cpu::features[7];
 bool        Cpu::bsp;
 bool        Cpu::preemption;
 
@@ -103,7 +103,7 @@ void Cpu::check_features()
             cpuid (0x7, 0, eax, features[3], ecx, edx);
             [[fallthrough]];
         case 0x6:
-            cpuid (0x6, features[2], ebx, ecx, edx);
+            cpuid (0x6, features[2], ebx, features[6], edx);
             [[fallthrough]];
         case 0x4 ... 0x5:
             cpuid (0x4, 0, eax, ebx, ecx, edx);
