@@ -66,16 +66,9 @@ unsigned    Cpu::patch[NUM_CPU];
 unsigned    Cpu::row;
 
 uint32      Cpu::name[12];
-uint32      Cpu::features[6];
+uint32      Cpu::features[8];
 bool        Cpu::bsp;
 bool        Cpu::preemption;
-
-bool invariant_tsc()
-{
-    uint32 eax, ebx, ecx, edx;
-    Cpu::cpuid (0x80000007, eax, ebx, ecx, edx);
-    return edx & 0x100;
-}
 
 void Cpu::check_features()
 {
@@ -109,7 +102,7 @@ void Cpu::check_features()
             /* hybrid flag (edx & (1u << 15)) */
             [[fallthrough]];
         case 0x6:
-            cpuid (0x6, features[2], ebx, ecx, edx);
+            cpuid (0x6, features[2], ebx, features[6], edx);
             [[fallthrough]];
         case 0x4 ... 0x5:
             cpuid (0x4, 0, eax, ebx, ecx, edx);
@@ -139,13 +132,14 @@ void Cpu::check_features()
                     smt = ((ebx >> 8) & 0xff) + 1;
                 }
                 [[fallthrough]];
-
             default:
                 cpuid (0x8000000a, Vmcb::svm_version, ebx, ecx, Vmcb::svm_feature);
 
                 if (ebx < Space_mem::asid_alloc.max())
                     Space_mem::asid_alloc.reserve(ebx, Space_mem::asid_alloc.max() - ebx);
 
+                [[fallthrough]];
+            case 0x8 ... 0x9:
                 if (vendor == AMD && smt) {
                     cpuid (0x80000008, eax, ebx, tpp, edx);
                     if ((tpp >> 12) & 0xf)
@@ -155,9 +149,11 @@ void Cpu::check_features()
 
                     cpp = tpp / smt;
                 }
-
                 [[fallthrough]];
-            case 0x4 ... 0x9:
+            case 0x7:
+                cpuid (0x80000007, eax, ebx, ecx, features[7]);
+                [[fallthrough]];
+            case 0x4 ... 0x6:
                 cpuid (0x80000004, name[8], name[9], name[10], name[11]);
                 [[fallthrough]];
             case 0x3:
@@ -269,7 +265,7 @@ void Cpu::init(bool resume)
     // Initialize CPU number and check features
     check_features();
 
-    Lapic::init(invariant_tsc());
+    Lapic::init(Cpu::feature(Cpu::Feature::FEAT_TSC_INVARIANT));
 
     if (!resume) {
         row = Console_vga::con.spinner (id);

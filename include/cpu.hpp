@@ -68,12 +68,22 @@ class Cpu
             FEAT_VMX            = 37,
             FEAT_PCID           = 49,
             FEAT_TSC_DEADLINE   = 56,
+            FEAT_CPU_TEMP       = 64,
+            FEAT_PKG_TEMP       = 70,
+            FEAT_HWP_7          = 71,
+            FEAT_HWP_9          = 73,
+            FEAT_HWP_10         = 74,
+            FEAT_HWP_11         = 75,
             FEAT_SMEP           = 103,
             FEAT_SMAP           = 116,
             FEAT_1GB_PAGES      = 154,
             FEAT_RDTSCP         = 32 * 4 + 27,
             FEAT_CMP_LEGACY     = 161,
             FEAT_SVM            = 162,
+            FEAT_HCFC           = 32 * 6,
+            FEAT_EPB            = 32 * 6 + 3,
+            FEAT_PSTATE_AMD     = 32 * 7 + 7,
+            FEAT_TSC_INVARIANT  = 32 * 7 + 8,
         };
 
         enum
@@ -170,7 +180,7 @@ class Cpu
         static unsigned row                 CPULOCAL;
 
         static uint32 name[12]              CPULOCAL;
-        static uint32 features[6]           CPULOCAL;
+        static uint32 features[8]           CPULOCAL;
         static bool bsp                     CPULOCAL;
         static bool preemption              CPULOCAL;
 
