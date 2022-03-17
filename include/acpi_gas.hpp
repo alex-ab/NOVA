@@ -53,6 +53,11 @@ class Acpi_gas
             bits = static_cast<uint8>(reg_bytes * 8);
             addr = reg_addr;
         }
+
+        void init (uint8 reg_asid, unsigned reg_bytes, uint64 reg_addr)
+        {
+            init(static_cast<Asid>(reg_asid), reg_bytes, reg_addr);
+        }
 };
 
 #pragma pack()

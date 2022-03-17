@@ -115,6 +115,9 @@ class Acpi_table_fadt : public Acpi_table
 
         INIT
         void parse() const;
+
+        void init_gas(Acpi_gas &,             uint8, uint32, Acpi_gas const &) const;
+        void init_gas(Acpi_gas &, Acpi_gas &, uint8, uint32, Acpi_gas const &) const;
 };
 
 #pragma pack()
