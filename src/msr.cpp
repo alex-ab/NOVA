@@ -6,6 +6,26 @@ Kobject * Msr::msr_cap {};
 
 void Msr::user_access(Utcb &utcb)
 {
+    if (Cpu::vendor == Cpu::Vendor::AMD) {
+        utcb.for_each_word([](mword &msr) {
+            switch (msr) {
+            case Msr::IA32_APERF:
+                if (!Cpu::feature(Cpu::Feature::FEAT_HCFC)) return false;
+                msr = Msr::read<uint64>(Msr::IA32_APERF);
+                return true;
+            case Msr::IA32_MPERF:
+                if (!Cpu::feature(Cpu::Feature::FEAT_HCFC)) return false;
+                msr = Msr::read<uint64>(Msr::IA32_MPERF);
+                return true;
+            default:
+                return false;
+            }
+        }, [](mword const &, mword const &) {
+            return false;
+        });
+        return;
+    }
+
     if (Cpu::vendor != Cpu::Vendor::INTEL)
         return;
 
