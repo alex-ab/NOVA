@@ -74,8 +74,10 @@ class Cpu
             FEAT_RDTSCP         = 32 * 4 + 27,
             FEAT_CMP_LEGACY     = 161,
             FEAT_SVM            = 162,
-            FEAT_HCFC           = 192,
-            FEAT_EPB            = 195,
+            FEAT_HCFC           = 32 * 6,
+            FEAT_EPB            = 32 * 6 + 3,
+            FEAT_PSTATE_AMD     = 32 * 7 + 7,
+            FEAT_TSC_INVARIANT  = 32 * 7 + 8,
         };
 
         enum
@@ -171,7 +173,7 @@ class Cpu
         static unsigned row                 CPULOCAL;
 
         static uint32 name[12]              CPULOCAL;
-        static uint32 features[7]           CPULOCAL;
+        static uint32 features[8]           CPULOCAL;
         static bool bsp                     CPULOCAL;
         static bool preemption              CPULOCAL;
 

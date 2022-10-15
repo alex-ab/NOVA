@@ -29,6 +29,11 @@ struct Kobject;
 
 class Msr
 {
+    private:
+
+        static void user_access_amd(Utcb &);
+        static void user_access_intel(Utcb &);
+
     public:
 
         // MSRs starting with IA32_ are architectural
@@ -106,6 +111,9 @@ class Msr
             IA32_TSC_AUX            = 0xc0000103,
 
             AMD_IPMR                = 0xc0010055,
+            AMD_PSTATE_LIMIT        = 0xc0010061,
+            AMD_PSTATE_CTRL         = 0xc0010062,
+            AMD_PSTATE_STATUS       = 0xc0010063,
             AMD_SVM_VM_CR           = 0xc0010114,
             AMD_SVM_HSAVE_PA        = 0xc0010117,
         };
