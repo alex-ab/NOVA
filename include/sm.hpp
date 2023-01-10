@@ -49,6 +49,8 @@ class Sm : public Kobject, public Refcount, public Queue<Ec>, public Queue<Si>, 
 
     public:
 
+        enum { NO_XCPU = 0, XCPU_OOM_INIT = 1, XCPU_OOM_ACK = 2, XCPU_OOM_EARLY = 3 } debug_state { NO_XCPU };
+
         mword reset(bool l = false) {
             if (l) lock.lock();
             mword c = counter;

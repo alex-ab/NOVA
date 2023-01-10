@@ -131,10 +131,17 @@ void Ec::oom_xcpu(Pt * pt, mword src_pd_id, mword oom_state)
 
     Sc *xcpu_sc = new (*Pd::current) Sc (Pd::current, xcpu_ec, xcpu_ec->cpu, Sc::current);
 
+//    trace (0, "%p:%p xcpu -> %p:%p cpu %u\n", Sc::current, Ec::current, xcpu_sc, xcpu_ec, pt->ec->cpu);
+    this->xcpu_sm->debug_state = Sm::XCPU_OOM_INIT;
+
     this->cont = ret_xcpu_reply_oom<C>;
 
     xcpu_sc->remote_enqueue();
     this->xcpu_sm->dn (false, 0);
+
+    trace (0, "%p:%p xcpu -> %p:%p cpu %u - early wakeup state=%u\n", Sc::current, Ec::current, xcpu_sc, xcpu_ec, pt->ec->cpu, int(this->xcpu_sm->debug_state));
+
+    this->xcpu_sm->debug_state = Sm::XCPU_OOM_EARLY;
 
     ret_xcpu_reply_oom<C>();
 }
@@ -146,6 +153,8 @@ void Ec::oom_xcpu_return()
     assert (current->rcap);
     assert (current->utcb);
     assert (Sc::current->ec == current);
+
+    current->xcpu_sm->debug_state = Sm::XCPU_OOM_ACK;
 
     current->xcpu_sm->up (C);
 
@@ -164,6 +173,9 @@ template <void (*C)()>
 void Ec::ret_xcpu_reply_oom()
 {
     assert (current->xcpu_sm);
+
+    if (current->xcpu_sm->debug_state != Sm::XCPU_OOM_ACK && current->xcpu_sm->debug_state != Sm::XCPU_OOM_EARLY)
+      trace (0, " xcpu oom unexpected state %u\n", int(current->xcpu_sm->debug_state));
 
     Sm::destroy(current->xcpu_sm, *Pd::current);
     current->xcpu_sm = nullptr;
