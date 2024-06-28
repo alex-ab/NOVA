@@ -139,14 +139,14 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         ALWAYS_INLINE
         inline void set_timeout (uint64 t, Sm *s)
         {
-            if (EXPECT_FALSE (t))
+            if (t) [[unlikely]]
                 timeout.enqueue (t, s);
         }
 
         ALWAYS_INLINE
         inline void clr_timeout()
         {
-            if (EXPECT_FALSE (timeout.active()))
+            if (timeout.active()) [[unlikely]]
                 timeout.dequeue();
         }
 
@@ -171,13 +171,13 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         NOINLINE
         void help (void (*c)())
         {
-            if (EXPECT_TRUE (cont != dead)) {
+            if (cont != dead) [[likely]] {
 
                 Counter::helping++;
 
                 current->cont = c;
 
-                if (EXPECT_TRUE (++Sc::ctr_loop < 100))
+                if (++Sc::ctr_loop < 100) [[likely]]
                     activate();
 
                 die ("Livelock");
