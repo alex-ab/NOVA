@@ -185,6 +185,9 @@ void Utcb_arch::load_vmx (Mtd_arch const m, Cpu_regs const &c)
         xss  = c.gst_xsv.xss;
     }
 
+    if (m & Mtd_arch::Item::SGX)
+        c.gst_sgx.read (sgxlepubkeyhash);
+
     if (m & Mtd_arch::Item::SYSCALL) {
         star  = c.gst_sys.star;
         lstar = c.gst_sys.lstar;
@@ -375,6 +378,9 @@ bool Utcb_arch::save_vmx (Mtd_arch const m, Cpu_regs &c, Space_obj const *obj) c
         c.gst_xsv.xcr = Fpu::State_xsv::constrain_xcr (xcr0);
         c.gst_xsv.xss = Fpu::State_xsv::constrain_xss (xss);
     }
+
+    if (m & Mtd_arch::Item::SGX)
+        c.gst_sgx.write (sgxlepubkeyhash);
 
     if (m & Mtd_arch::Item::SYSCALL) {
         c.gst_sys.star  = Cpu::State_sys::constrain_star  (star);
