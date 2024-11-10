@@ -39,6 +39,7 @@ class Console_uart : protected Console
         {
             Wait::until (timeout, [&] { return !tx_busy(); });
 
+//            return false;
             return true;
         }
 
