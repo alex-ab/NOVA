@@ -196,6 +196,10 @@ void Ec::create_root()
             hst->delegate (&Space_hst::nova, phys >> PAGE_BITS, virt >> PAGE_BITS, (o = aligned_order (size, phys, virt)) - PAGE_BITS, perm, Memattr::ram());
     }
 
+    /* make UTCB of first EC mappable by root task to desired place */
+    hst->update (utcb_addr, Kmem::ptr_to_phys (ec->get_utcb()), 0,
+                 Paging::Permissions (/* Paging::K |*/ Paging::U | Paging::R | Paging::W), Memattr::ram());
+
     Integrity::measure();
 
     Hip::hip->build (root_s, root_e);
