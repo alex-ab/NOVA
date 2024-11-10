@@ -89,6 +89,8 @@ void Ec_arch::handle_exc (Exc_regs *r)
 {
     Ec *const self { current };
 
+    trace (0, "%s %lu\n", __func__, r->vec);
+
     switch (r->vec) {
 
         case EXC_NM:
@@ -110,6 +112,8 @@ void Ec_arch::handle_exc (Exc_regs *r)
             Mca::handler();
             break;
     }
+
+    trace (0, "%s me=%p %lu r->user()=%u cr2=%lx\n", __func__, self, r->vec, r->user(), r->cr2);
 
     if (r->user())
         send_msg<ret_user_exception> (self);

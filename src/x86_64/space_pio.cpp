@@ -78,6 +78,8 @@ Status Space_pio::delegate (Space_pio const *pio, unsigned long ssb, unsigned lo
     if (EXPECT_FALSE (ssb != dsb || !Bitmap_pio::sel_valid (e - 1)))
         return Status::BAD_PAR;
 
+    trace(0, "%s s=%lx e=%lx pmm=%x", __func__, ssb, e, pmm);
+
     for (auto s { ssb }; s < e; s++)
         update (s, Paging::Permissions (pio->lookup (s) & pmm));
 

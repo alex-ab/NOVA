@@ -157,6 +157,9 @@ void Ec::create_root()
     abi.p1() = Multiboot::p1;
     abi.p2() = Multiboot::p2;
 
+	trace(0, "multiboot rdi:%lx rsi:%lx rdx:%lx\n",
+	      Multiboot::p0, Multiboot::p1, Multiboot::p2);
+
     ec->cont = Ec_arch::ret_user_hypercall;
     ec->exc_regs().ip() = e->entry;
     ec->exc_regs().sp() = info_addr;

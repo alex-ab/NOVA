@@ -109,6 +109,8 @@ void Ec::rendezvous (Ec *const ec, cont_t c, cont_t e, uintptr_t ip, uintptr_t i
     ec->cont = e;
     ec->exc_regs().ip() = ip;
 
+	trace(0, "%s ip=%lx\n", __func__, ip);
+
     Sys_abi abi { ec->sys_regs() };
     abi.p0() = id;
     abi.p1() = mtd;
@@ -142,8 +144,10 @@ template<Ec::cont_t C> void Ec::send_msg (Ec *const self)
     auto const obj { self->regs.get_obj() };
     auto const cpt { obj->lookup (self->evt + r.ep()) };
 
-    if (EXPECT_FALSE (!cpt.validate (Capability::Perm_pt::EVENT)))
+    if (EXPECT_FALSE (!cpt.validate (Capability::Perm_pt::EVENT))) {
+        trace (0, "send_msg before pt not found %x + %x\n", self->evt, r.ep());
         self->kill ("PT not found");
+    }
 
     auto const pt { static_cast<Pt *>(cpt.obj()) };
     auto const ec { pt->get_ec() };
@@ -167,24 +171,31 @@ void Ec::sys_ipc_call (Ec *const self)
     auto const obj { self->regs.get_obj() };
     auto const cpt { obj->lookup (r.pt()) };
 
-    if (EXPECT_FALSE (!cpt.validate (Capability::Perm_pt::CALL)))
+    if (EXPECT_FALSE (!cpt.validate (Capability::Perm_pt::CALL))) {
+        trace (0, " innnnnnnnnnnnvalid PERM %lx", r.pt());
         sys_finish<Status::BAD_CAP> (self);
+    }
 
     auto const pt { static_cast<Pt *>(cpt.obj()) };
     auto const ec { pt->get_ec() };
 
-    if (EXPECT_FALSE (self->cpu != ec->cpu))
+    if (EXPECT_FALSE (self->cpu != ec->cpu)) {
+        trace (0, " IPC call BAD_CPU");
         sys_finish<Status::BAD_CPU> (self);
+    }
 
     assert (ec->subtype == Kobject::Subtype::EC_LOCAL);
 
     self->rendezvous (ec, Ec_arch::ret_user_hypercall, recv_user, pt->get_ip(), pt->get_id(), r.mtd());
 
-    if (EXPECT_FALSE (r.timeout()))
+    if (EXPECT_FALSE (r.timeout())) {
+        trace (0, " IPC call TIMEOUT");
         sys_finish<Status::TIMEOUT> (self);
+	}
 
     self->help (ec, sys_ipc_call);
 
+    trace (0, " IPC call ABORTED");
     sys_finish<Status::ABORTED> (self);
 }
 
@@ -257,7 +268,12 @@ void Ec::sys_create_ec (Ec *const self)
         self->sys_finish_status (Status::BAD_CAP);
 
     Status s;
+
+    trace (TRACE_SYSCALL, "EC:%p %s SEL:%#lx PD:%#lx CPU:%#x HVA:%#lx SP:%#lx EVT:%#lx flag=%x", static_cast<void *>(self), __func__, r.sel(), r.pd(), r.cpu(), r.hva(), r.sp(), r.evt(), r.flg());
+
     Pd::create_ec (s, obj, r.sel(), static_cast<Pd *>(cpd.obj()), r.cpu(), r.evt(), r.sp(), r.hva(), r.flg());
+
+    trace (TRACE_SYSCALL, "EC:%p %s SEL:%#lx PD:%#lx CPU:%#x HVA:%#lx SP:%#lx EVT:%#lx %u", static_cast<void *>(self), __func__, r.sel(), r.pd(), r.cpu(), r.hva(), r.sp(), r.evt(), s);
 
     self->sys_finish_status (s);
 }
@@ -320,16 +336,22 @@ void Ec::sys_create_sm (Ec *const self)
 {
     Sys_create_sm r { self->sys_regs() };
 
-    trace (TRACE_SYSCALL, "EC:%p %s SEL:%#lx PD:%#lx CNT:%lu", static_cast<void *>(self), __func__, r.sel(), r.pd(), r.cnt());
+    trace (TRACE_SYSCALL, "EC:%p %s SEL:%#lx PD:%#lx CNT:%lu sel_num=%llx",
+           static_cast<void *>(self), __func__, r.sel(), r.pd(), r.cnt(),
+           Space_obj::selectors);
 
     auto const obj { self->regs.get_obj() };
     auto const cpd { obj->lookup (r.pd()) };
 
-    if (EXPECT_FALSE (!cpd.validate (Capability::Perm_pd::SM)))
+    if (EXPECT_FALSE (!cpd.validate (Capability::Perm_pd::SM))) {
+        trace (TRACE_SYSCALL, "EC:%p %s SEL:%#lx PD:%#lx CNT:%lu no sm perm", static_cast<void *>(self), __func__, r.sel(), r.pd(), r.cnt());
         self->sys_finish_status (Status::BAD_CAP);
+    }
 
     Status s;
     Pd::create_sm (s, obj, r.sel(), r.cnt());
+
+    trace (TRACE_SYSCALL, "EC:%p %s SEL:%#lx PD:%#lx CNT:%lu status=%x", static_cast<void *>(self), __func__, r.sel(), r.pd(), r.cnt(), unsigned(s));
 
     self->sys_finish_status (s);
 }
@@ -347,10 +369,17 @@ void Ec::sys_ctrl_pd (Ec *const self)
     auto const cst { obj->lookup (r.src()) };
     auto const cdt { obj->lookup (r.dst()) };
 
-    Kobject::Subtype st, dt;
+    Kobject::Subtype st { }, dt { };
+
+    trace (TRACE_SYSCALL, "EC:%p %s SRC:%#lx DST:%#lx SSB:%#lx DSB:%#lx ORD:%u PMM:%#x A", static_cast<void *>(self), __func__, r.src(), r.dst(), r.ssb(), r.dsb(), r.ord(), r.pmm());
+
+    trace (0, "XXX if (%x || %x) -> false",
+           !(cst.prm() & std::to_underlying (Capability::Perm_sp::TAKE)),
+           !(cdt.prm() & std::to_underlying (Capability::Perm_sp::GRANT)));
 
     if (EXPECT_TRUE (Capability::validate_take_grant (cst, cdt, st, dt))) {
 
+    trace (TRACE_SYSCALL, "EC:%p %s SRC:%#lx DST:%#lx SSB:%#lx DSB:%#lx ORD:%u PMM:%#x ST:%u DT=%u B", static_cast<void *>(self), __func__, r.src(), r.dst(), r.ssb(), r.dsb(), r.ord(), r.pmm(), unsigned(st), unsigned(dt));
         if (st == Kobject::Subtype::HST) {
             if (static_cast<Space_hst *>(cst.obj()) == &Space_hst::nova && !r.ma().valid())
                 self->sys_finish_status (Status::BAD_PAR);
@@ -362,13 +391,22 @@ void Ec::sys_ctrl_pd (Ec *const self)
                 self->sys_finish_status (static_cast<Space_dma *>(cdt.obj())->delegate (static_cast<Space_hst *>(cst.obj()), r.ssb(), r.dsb(), r.ord(), r.pmm(), r.ma()));
         }
 
-        else if (st == Kobject::Subtype::OBJ && dt == st)
-            self->sys_finish_status (static_cast<Space_obj *>(cdt.obj())->delegate (static_cast<Space_obj *>(cst.obj()), r.ssb(), r.dsb(), r.ord(), r.pmm()));
-        else if (st == Kobject::Subtype::PIO && dt == st)
-            self->sys_finish_status (static_cast<Space_pio *>(cdt.obj())->delegate (static_cast<Space_pio *>(cst.obj()), r.ssb(), r.dsb(), r.ord(), r.pmm()));
+        else if (st == Kobject::Subtype::OBJ && dt == st) {
+            auto status = static_cast<Space_obj *>(cdt.obj())->delegate (static_cast<Space_obj *>(cst.obj()), r.ssb(), r.dsb(), r.ord(), r.pmm());
+            trace (0, "obj result %u", unsigned(status));
+            self->sys_finish_status (status);
+        }
+        else if (st == Kobject::Subtype::PIO && dt == st) {
+            auto status = (static_cast<Space_pio *>(cdt.obj())->delegate (static_cast<Space_pio *>(cst.obj()), r.ssb(), r.dsb(), r.ord(), r.pmm()));
+            trace (0, "obj result %u", unsigned(status));
+            self->sys_finish_status (status);
+        }
         else if (st == Kobject::Subtype::MSR && dt == st)
             self->sys_finish_status (static_cast<Space_msr *>(cdt.obj())->delegate (static_cast<Space_msr *>(cst.obj()), r.ssb(), r.dsb(), r.ord(), r.pmm()));
     }
+
+    trace (TRACE_SYSCALL, "EC:%p %s SRC:%#lx DST:%#lx SSB:%#lx DSB:%#lx ORD:%u PMM:%#x ST:%u DT=%u END",
+           static_cast<void *>(self), __func__, r.src(), r.dst(), r.ssb(), r.dsb(), r.ord(), r.pmm(), unsigned(st), unsigned(dt));
 
     self->sys_finish_status (Status::BAD_CAP);
 }

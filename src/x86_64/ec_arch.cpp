@@ -53,7 +53,7 @@ Ec_arch::Ec_arch (bool t, Fpu *f, Refptr<Space_obj> &ref_obj, Refptr<Space_hst> 
     exc_regs().set_ep (Event::hst_arch + Event::Selector::STARTUP);
 
     // Map UTCB
-    hst->update (hva, Kmem::ptr_to_phys (kpage), 0, Paging::Permissions (Paging::K | Paging::U | Paging::W | Paging::R), Memattr::ram());
+    hst->update (hva, Kmem::ptr_to_phys (kpage), 0, Paging::Permissions (/* */ Paging::K | Paging::U | Paging::W | Paging::R), Memattr::ram());
 }
 
 // Constructor: GST EC (VMX)

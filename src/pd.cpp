@@ -177,13 +177,17 @@ Pd *Pd::create_pd (Status &s, Space_obj *obj, unsigned long sel, unsigned prm)
 
 Ec *Pd::create_ec (Status &s, Space_obj *obj, unsigned long sel, Pd *pd, cpu_t cpu, uintptr_t evt, uintptr_t sp, uintptr_t hva, uint8_t flg)
 {
+trace(0, "%s:%u flg=%x flg & BIT(0) =%d\n", __func__, __LINE__, flg, flg & BIT(0));
     auto const o { (flg & BIT (0) ? Ec::create_gst : Ec::create_hst) (s, pd, flg & BIT (1), flg & BIT (2), cpu, evt, sp, hva) };
 
+trace(0, "%s:%u\n", __func__, __LINE__);
     if (EXPECT_TRUE (o)) {
 
+trace(0, "%s:%u\n", __func__, __LINE__);
         if (EXPECT_TRUE ((s = obj->insert (sel, Capability (o, std::to_underlying (Capability::Perm_ec::DEFINED)))) == Status::SUCCESS))
             return o;
 
+trace(0, "%s:%u\n", __func__, __LINE__);
         o->destroy();
     }
 
