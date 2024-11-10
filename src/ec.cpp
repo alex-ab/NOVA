@@ -206,6 +206,10 @@ void Ec::create_root()
             }
     }
 
+    /* make UTCB of first EC mappable by root task to desired place */
+    hst->update (utcb_addr, Kmem::ptr_to_phys (ec->get_utcb()), 0,
+                 Paging::Permissions (/* Paging::K |*/ Paging::U | Paging::R | Paging::W), Memattr::ram());
+
     Integrity::measure();
 
     Hip::hip->build (root_s, root_e);
