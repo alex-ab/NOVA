@@ -88,6 +88,7 @@ constexpr auto trace_mask { TRACE_CPU       |
                             TRACE_ROOT      |
                             TRACE_PERF      |
                             TRACE_KILL      |
+//                            TRACE_SYSCALL   |
 #ifdef DEBUG
                             TRACE_DESTROY   |
                             TRACE_ERROR     |

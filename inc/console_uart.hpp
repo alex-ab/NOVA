@@ -40,6 +40,7 @@ class Console_uart : protected Console
             Wait::until (timeout, [&] { return !tx_busy(); });
 
             return false;
+//            return true;
         }
 
         [[nodiscard]] bool outc (char c) const override final
