@@ -32,7 +32,7 @@ class Sc : public Kobject, public Refcount
 
     public:
         Refptr<Ec> const ec;
-        unsigned       cpu;
+        cpu_t            cpu;
         uint16         prio;
         uint16         disable { 0 };
         uint64         budget;
@@ -78,8 +78,8 @@ class Sc : public Kobject, public Refcount
         static unsigned const default_quantum = 10000;
 
         Sc (Pd *, mword, Ec *);
-        Sc (Pd *, mword, Ec *, unsigned, unsigned, unsigned);
-        Sc (Pd *, Ec *, unsigned, Sc *);
+        Sc (Pd *, mword, Ec *, cpu_t, unsigned, unsigned);
+        Sc (Pd *, Ec *, cpu_t, Sc *);
         Sc (Pd *, Ec *, Sc &);
 
         ALWAYS_INLINE

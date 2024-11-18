@@ -35,6 +35,7 @@ bool Acpi_table_madt::sci_overridden;
 void Acpi_table_madt::parse() const
 {
     parse_entry (Acpi_apic::LAPIC,  &parse_lapic);
+    parse_entry (Acpi_apic::X2APIC, &parse_x2apic);
     parse_entry (Acpi_apic::IOAPIC, &parse_ioapic);
     parse_entry (Acpi_apic::INTR,   &parse_intr);
 
@@ -53,8 +54,20 @@ void Acpi_table_madt::parse_lapic (Acpi_apic const *ptr)
     Acpi_lapic const *p = static_cast<Acpi_lapic const *>(ptr);
 
     if (p->flags & 1 && Cpu::online < NUM_CPU) {
-        Cpu::acpi_id[Cpu::online]   = p->acpi_id;
-        Cpu::apic_id[Cpu::online++] = p->apic_id;
+        Lapic::id   [Cpu::online  ] = p->apic_id;
+        Cpu::apic_x2[Cpu::online  ] = false;
+        Cpu::acpi_id[Cpu::online++] = p->acpi_id;
+    }
+}
+
+void Acpi_table_madt::parse_x2apic (Acpi_apic const *ptr)
+{
+    Acpi_x2apic const *p = static_cast<Acpi_x2apic const *>(ptr);
+
+    if (p->flags & 1 && Cpu::online < NUM_CPU) {
+        Lapic::id   [Cpu::online  ] = p->id;
+        Cpu::apic_x2[Cpu::online  ] = true;
+        Cpu::acpi_id[Cpu::online++] = p->uid;
     }
 }
 

@@ -32,3 +32,7 @@ typedef unsigned long long  uint64_t;
 
 typedef unsigned long       mword;
 typedef unsigned long       Paddr;
+
+// NOVA Types
+using apic_t    = uint32_t;
+using cpu_t     = uint16_t;

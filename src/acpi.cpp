@@ -226,6 +226,7 @@ void Acpi::hw_write (Acpi_gas *gas, unsigned val, bool prm)
                 Io::out (static_cast<unsigned>(gas->addr), static_cast<uint32>(val));
                 return;
             case 64:
+            case 96:
             case 128:
                if (!prm)
                    break;

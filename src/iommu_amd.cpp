@@ -382,7 +382,7 @@ void Iommu::Amd::flush(unsigned const rid, unsigned const type, bool const wait)
         tail = (tail + 16) % ring_size;
     }
 
-    barrier();
+    Barrier::fmb();
 
     write<uint64>(REG_CMD_TAIL, tail);
 
@@ -404,7 +404,7 @@ void Iommu::Amd::flush_pgt (Pd &p)
     inv[1] = (0x7FFFFFFFFFFFFull << 12) | 2 | 1;
     tail = (tail + 16) % ring_size;
 
-    barrier();
+    Barrier::fmb();
 
     write<uint64>(REG_CMD_TAIL, tail);
 

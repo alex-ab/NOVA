@@ -62,7 +62,7 @@ void Rcu::start_batch (State s)
 
     count = Cpu::online;
 
-    barrier();
+    asm volatile ("" : : : "memory");
 
     state++;
 }
@@ -95,12 +95,12 @@ void Rcu::update(bool const check)
     }
 
     if (check && !curr.empty() && !next.empty() && (next.count > 2000 || curr.count > 2000))
-        for (unsigned cpu = 0; cpu < NUM_CPU; cpu++) {
+        for (cpu_t cpu = 0; cpu < NUM_CPU; cpu++) {
 
             if (!Hip::cpu_online (cpu) || Cpu::id == cpu)
                 continue;
 
-            Lapic::send_ipi (cpu, VEC_IPI_IDL);
+            Lapic::send_cpu (VEC_IPI_IDL, cpu);
         }
 
     if (!done.empty())

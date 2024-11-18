@@ -6,7 +6,8 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
- * Copyright (C) 2017-2023 Alexander Boettcher
+ * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
+ * Copyright (C) 2017-2024 Alexander Boettcher
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -25,11 +26,12 @@
 #include "arch.hpp"
 #include "compiler.hpp"
 #include "types.hpp"
+#include "std.hpp"
 
 struct Utcb;
 struct Kobject;
 
-class Msr
+class Msr final
 {
     private:
 
@@ -39,7 +41,7 @@ class Msr
     public:
 
         // MSRs starting with IA32_ are architectural
-        enum Register
+        enum Reg64 : unsigned
         {
             DUMMY_MWAIT_HINT        = 0x0,
             IA32_TSC                = 0x10,
@@ -139,7 +141,7 @@ class Msr
             IA32_HWP_REQUEST_PKG    = 0x772,
             IA32_HWP_REQUEST        = 0x774,
 
-            IA32_EXT_XAPIC          = 0x800,
+            IA32_X2APIC             = 0x800,
 
             IA32_XSS                = 0xda0,        // XSAVE
 
@@ -161,31 +163,41 @@ class Msr
             AMD_SVM_HSAVE_PA        = 0xc0010117,
         };
 
-        enum Feature_Control
+        enum class Arr64 : unsigned
         {
-            FEATURE_LOCKED          = 1ul << 0,
-            FEATURE_VMX_I_SMX       = 1ul << 1,
-            FEATURE_VMX_O_SMX       = 1ul << 2
+            IA32_MTRR_PHYS_BASE             = 0x200,        // IA32_MTRR_CAP[7:0] > 0
+            IA32_MTRR_PHYS_MASK             = 0x201,        // IA32_MTRR_CAP[7:0] > 0
+            IA32_MTRR_FIX64K_BASE           = 0x250,        // MTRR
+            IA32_MTRR_FIX16K_BASE           = 0x258,        // MTRR
+            IA32_MTRR_FIX4K_BASE            = 0x268,        // MTRR
+            IA32_MC_CTL2                    = 0x280,        // IA32_MCG_CAP[7:0] > 0 and IA32_MCG_CAP[MCG_CMCI_P]
+            IA32_MC_CTL                     = 0x400,        // IA32_MCG_CAP[7:0] > 0
+            IA32_MC_STATUS                  = 0x401,        // IA32_MCG_CAP[7:0] > 0
+            IA32_MC_ADDR                    = 0x402,        // IA32_MCG_CAP[7:0] > 0
+            IA32_MC_MISC                    = 0x403,        // IA32_MCG_CAP[7:0] > 0
+            IA32_X2APIC                     = 0x800,        // X2APIC
+            IA32_L3_MASK                    = 0xc90,        // RDT-A (max 128)
+            IA32_L2_MASK                    = 0xd10,        // RDT-A (max 64)
+            IA32_MB_THRT                    = 0xd50,        // RDT-A (max 64)
         };
 
-        template <typename T>
-        ALWAYS_INLINE
-        static inline T read (Register msr)
+        static auto read (Reg64 msr)
         {
-            mword h, l;
-            asm volatile ("rdmsr" : "=a" (l), "=d" (h) : "c" (msr));
-            return static_cast<T>(static_cast<uint64>(h) << 32 | l);
+            uint32_t hi, lo;
+            asm volatile ("rdmsr" : "=d" (hi), "=a" (lo) : "c" (msr));
+            return static_cast<uint64_t>(hi) << 32 | lo;
         }
 
-        template <typename T>
-        ALWAYS_INLINE
-        static inline void write (Register msr, T val)
+        static void write (Reg64 msr, uint64_t val)
         {
-            asm volatile ("wrmsr" : : "a" (static_cast<mword>(val)), "d" (static_cast<mword>(static_cast<uint64>(val) >> 32)), "c" (msr));
+            asm volatile ("wrmsr" : : "d" (static_cast<uint32_t>(val >> 32)), "a" (static_cast<uint32_t>(val)), "c" (msr));
         }
 
+        static auto read  (Arr64 r, unsigned b, unsigned n)       { return read (Reg64 { std::to_underlying (r) + b * n }); }
+        static void write (Arr64 r, unsigned b, unsigned n, uint64_t v) { write (Reg64 { std::to_underlying (r) + b * n }, v); }
+
         ALWAYS_INLINE
-        static inline bool guard_read (Register const &msr, uint64 &value)
+        static inline bool guard_read (Reg64 const &msr, uint64 &value)
         {
             uint32 high { }, low { };
             bool fault { };
@@ -206,7 +218,7 @@ class Msr
         }
 
         ALWAYS_INLINE
-        static inline bool guard_write (Register const &msr, uint64 const val)
+        static inline bool guard_write (Reg64 const &msr, uint64 const val)
         {
             bool fault { };
 

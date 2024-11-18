@@ -523,7 +523,7 @@ struct Msr_bitmap
         Buddy::allocator.free(reinterpret_cast<mword>(obj), quota);
     }
 
-    void disable_msr_exit(Msr::Register const & reg)
+    void disable_msr_exit(Msr::Reg64 const & reg)
     {
         auto const valid_range = reg & 0x1ffffu;
         auto const index       = valid_range / 8;

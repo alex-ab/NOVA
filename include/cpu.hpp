@@ -6,7 +6,8 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
- * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
+ * Copyright (C) 2015-2024 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -27,14 +28,15 @@
 #include "types.hpp"
 #include "assert.hpp"
 #include "macros.hpp"
+#include "memory.hpp"
 
 class Cpu
 {
     private:
-        static char const * const vendor_string[];
+        static constexpr apic_t invalid_topology { BIT_RANGE (31, 0) };
 
-        ALWAYS_INLINE
-        static inline void check_features();
+        // Must agree with enum class Vendor below
+        static constexpr char const *vendor_string[] { "Unknown", "GenuineIntel", "AuthenticAMD" };
 
         ALWAYS_INLINE
         static inline void setup_thermal();
@@ -45,12 +47,15 @@ class Cpu
         ALWAYS_INLINE
         static inline void setup_pcid();
 
+        static void enumerate_topology (uint32_t, uint32_t &, uint32_t (&)[4]);
+        static void enumerate_features (uint32_t &, uint32_t &, uint32_t (&)[4], uint32_t (&)[12]);
+
     public:
-        enum Vendor
+        enum class Vendor : uint8_t
         {
             UNKNOWN,
             INTEL,
-            AMD
+            AMD,
         };
 
         enum Core_type
@@ -167,8 +172,8 @@ class Cpu
         static mword    boot_lock           asm ("boot_lock");
 
         static unsigned online;
-        static uint8    acpi_id[NUM_CPU];
-        static uint8    apic_id[NUM_CPU];
+        static uint32   acpi_id[NUM_CPU];
+        static bool     apic_x2[NUM_CPU];
 
         static uint8    package[NUM_CPU];
         static uint8    core[NUM_CPU];
@@ -181,13 +186,13 @@ class Cpu
         static uint8    core_type[NUM_CPU];
         static unsigned patch[NUM_CPU];
 
-        static unsigned id                  CPULOCAL_HOT;
+        static cpu_t    id                  CPULOCAL_HOT;
+        static apic_t   topology            CPULOCAL_HOT;
         static unsigned hazard              CPULOCAL_HOT;
         static Vendor   vendor              CPULOCAL;
         static unsigned brand               CPULOCAL;
         static unsigned row                 CPULOCAL;
 
-        static uint32 name[12]              CPULOCAL;
         static uint32 features[11]          CPULOCAL;
         static bool bsp                     CPULOCAL;
         static bool preemption              CPULOCAL;
@@ -233,35 +238,34 @@ class Cpu
             return flags & 0x200;
         }
 
-        ALWAYS_INLINE
-        static inline void preemption_point()
-        {
-            asm volatile ("sti; nop; cli" : : : "memory");
-        }
+        static void preemption_point()      { asm volatile ("sti; nop; cli" : : : "memory"); }
 
-        ALWAYS_INLINE
-        static inline void cpuid (unsigned leaf, uint32 &eax, uint32 &ebx, uint32 &ecx, uint32 &edx)
+        static void cpuid (unsigned leaf, uint32_t &eax, uint32_t &ebx, uint32_t &ecx, uint32_t &edx)
         {
             asm volatile ("cpuid" : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx) : "a" (leaf));
         }
 
-        ALWAYS_INLINE
-        static inline void cpuid (unsigned leaf, unsigned subleaf, uint32 &eax, uint32 &ebx, uint32 &ecx, uint32 &edx)
+        static void cpuid (unsigned leaf, unsigned subleaf, uint32_t &eax, uint32_t &ebx, uint32_t &ecx, uint32_t &edx)
         {
             asm volatile ("cpuid" : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx) : "a" (leaf), "c" (subleaf));
         }
 
-        ALWAYS_INLINE
-        static unsigned find_by_apic_id (unsigned x)
-        {
-            for (unsigned i = 0; i < NUM_CPU; i++)
-                if (apic_id[i] == x)
-                    return i;
 
-            return ~0U;
+        static auto remote_topology (cpu_t c)
+        {
+            return *reinterpret_cast<mword *>(reinterpret_cast<mword>(&topology) - CPU_LOCAL_DATA + HV_GLOBAL_CPUS + c * PAGE_SIZE);
         }
 
-        ALWAYS_INLINE
+
+        static auto find_by_topology (uint32_t t)
+        {
+            for (cpu_t c { 0 }; c < online; c++)
+                if (remote_topology (c) == t)
+                    return c;
+
+            return static_cast<cpu_t>(-1);
+        }
+
         static void halt_or_mwait(auto const &halt, auto const &mwait)
         {
             if (!Cpu::feature (Cpu::FEAT_MONITOR_MWAIT) || mwait_hint == ~0U) {

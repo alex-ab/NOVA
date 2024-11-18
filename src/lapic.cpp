@@ -1,11 +1,14 @@
 /*
- * Local Advanced Programmable Interrupt Controller (Local APIC)
+ * Local Advanced Programmable Interrupt Controller (LAPIC)
  *
  * Copyright (C) 2009-2011 Udo Steinberg <udo@hypervisor.org>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
+ * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
+ *
+ * Copyright (C) 2015-2024 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -20,6 +23,7 @@
  */
 
 #include "acpi.hpp"
+#include "barrier.hpp"
 #include "cmdline.hpp"
 #include "ec.hpp"
 #include "hip.hpp"
@@ -35,63 +39,70 @@ unsigned    Lapic::freq_bus;
 
 void Lapic::init_cpuid()
 {
-    Paddr apic_base = Msr::read<Paddr>(Msr::IA32_APIC_BASE);
+    auto const apic_base { static_cast<mword>(Msr::read (Msr::Reg64::IA32_APIC_BASE)) };
 
     Pd::kern.Space_mem::delreg (Pd::kern.quota, Pd::kern.mdb_cache, apic_base & ~PAGE_MASK);
     Hptp (Hpt::current()).update (Pd::kern.quota, CPU_LOCAL_APIC, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, apic_base & ~PAGE_MASK);
 
-    Cpu::id  = Cpu::find_by_apic_id (Lapic::id());
+    auto apic_id = (apic_base & BIT (10)) ? read_x2apic (Reg32::IDR)
+                                          : read_legacy (Reg32::IDR) >> 24;
+
+    Cpu::id  = Lapic::lookup (apic_id);
     Cpu::bsp = apic_base & 0x100;
 }
 
 void Lapic::init(bool const invariant_tsc)
 {
-    Paddr apic_base = Msr::read<Paddr>(Msr::IA32_APIC_BASE);
-    Msr::write (Msr::IA32_APIC_BASE, apic_base | 0x800);
+    auto const apic_base { Msr::read (Msr::Reg64::IA32_APIC_BASE) };
 
-    uint32 svr = read (LAPIC_SVR);
-    if (!(svr & 0x100))
-        write (LAPIC_SVR, svr | 0x100);
+    // HW enable
+    Msr::write (Msr::Reg64::IA32_APIC_BASE, apic_base | BIT (11) | BIT (10) * x2apic);
 
-    bool dl = Cpu::feature (Cpu::FEAT_TSC_DEADLINE) && !Cmdline::nodl;
+    // SW enable
+    write (Reg32::SVR, read (Reg32::SVR) | BIT (8));
+
+    bool const dl { Cpu::feature (Cpu::Feature::FEAT_TSC_DEADLINE) && !Cmdline::nodl };
 
     switch (lvt_max()) {
-        default:
-            set_lvt (LAPIC_LVT_THERM, DLV_FIXED, VEC_LVT_THERM);
+        default:            // 7 entries since NHM
+            set_lvt (Reg32::LVT_CMCHK, Delivery::DLV_FIXED, VEC_LVT_CMCHK);
             [[fallthrough]];
-        case 4:
-            set_lvt (LAPIC_LVT_PERFM, DLV_FIXED, VEC_LVT_PERFM);
+        case 5:             // 6 entries since WMT
+            set_lvt (Reg32::LVT_THERM, Delivery::DLV_FIXED, VEC_LVT_THERM);
             [[fallthrough]];
-        case 3:
-            set_lvt (LAPIC_LVT_ERROR, DLV_FIXED, VEC_LVT_ERROR);
+        case 4:             // 5 entries since P6
+            set_lvt (Reg32::LVT_PERFM, Delivery::DLV_FIXED, VEC_LVT_PERFM);
+            [[fallthrough]];
+        case 3:             // 4 entries since P5
+            set_lvt (Reg32::LVT_ERROR, Delivery::DLV_FIXED, VEC_LVT_ERROR);
             [[fallthrough]];
         case 2:
-            set_lvt (LAPIC_LVT_LINT1, DLV_NMI, 0);
+            set_lvt (Reg32::LVT_LINT1, Delivery::DLV_NMI, 0);
             [[fallthrough]];
         case 1:
-            set_lvt (LAPIC_LVT_LINT0, DLV_EXTINT, 0, 1U << 16);
+            set_lvt (Reg32::LVT_LINT0, Delivery::DLV_EXTINT, 0, BIT (16));
             [[fallthrough]];
         case 0:
-            set_lvt (LAPIC_LVT_TIMER, DLV_FIXED, VEC_LVT_TIMER, dl ? 2U << 17 : 0);
+            set_lvt (Reg32::LVT_TIMER, Delivery::DLV_FIXED, VEC_LVT_TIMER, BIT (18) * dl);
     }
 
-    write (LAPIC_TPR, 0x10);
-    write (LAPIC_TMR_DCR, 0xb);
+    write (Reg32::TPR, 0x10);
+    write (Reg32::TMR_DCR, 0xb);
 
     if (Cpu::bsp) {
         bool measured = !read_tsc_freq();
 
-        send_ipi (0, 0, DLV_INIT, DSH_EXC_SELF);
+        send_exc (0, Delivery::DLV_INIT);
 
         if (!freq_tsc) {
             uint32 const delay = (dl || !invariant_tsc) ? 10 : 500;
 
-            write (LAPIC_TMR_ICR, ~0U);
+            write (Reg32::TMR_ICR, ~0U);
 
-            uint32 v1 = read (LAPIC_TMR_CCR);
+            uint32 v1 = read (Reg32::TMR_CCR);
             uint32 t1 = static_cast<uint32>(rdtsc());
             Acpi::delay (delay);
-            uint32 v2 = read (LAPIC_TMR_CCR);
+            uint32 v2 = read (Reg32::TMR_CCR);
             uint32 t2 = static_cast<uint32>(rdtsc());
 
             freq_tsc = (t2 - t1) / delay;
@@ -102,15 +113,16 @@ void Lapic::init(bool const invariant_tsc)
         trace (0, "TSC:%u kHz BUS:%u kHz%s%s", freq_tsc, freq_bus, measured ? " (measured)" : "", dl ? " DL" : "");
 
         if (Cpu::online > 1) {
-            send_ipi (0, AP_BOOT_PADDR >> PAGE_BITS, DLV_SIPI, DSH_EXC_SELF);
+            send_exc (AP_BOOT_PADDR >> PAGE_BITS, Delivery::DLV_SIPI);
             Acpi::delay (1);
-            send_ipi (0, AP_BOOT_PADDR >> PAGE_BITS, DLV_SIPI, DSH_EXC_SELF);
+            send_exc (AP_BOOT_PADDR >> PAGE_BITS, Delivery::DLV_SIPI);
         }
     }
 
-    write (LAPIC_TMR_ICR, 0);
+    write (Reg32::TMR_ICR, 0);
 
-    trace (TRACE_APIC, "APIC:%#lx ID:%#x VER:%#x LVT:%#x (%s Mode)", apic_base & ~PAGE_MASK, id(), version(), lvt_max(), freq_bus ? "OS" : "DL");
+    // Enforce ordering between the LVT MMIO write that enables TSC deadline mode and later WRMSRs to IA32_TSC_DEADLINE
+    Barrier::fmb();
 }
 
 bool Lapic::read_tsc_freq()
@@ -161,16 +173,16 @@ bool Lapic::read_tsc_freq()
 
     if (model == 0x2a || model == 0x2d || /* Sandy Bridge */
         model >= 0x3a) { /* Ivy Bridge and later */
-        uint64 ratio = (Msr::read<uint64>(Msr::MSR_PLATFORM_INFO) >> 8) & 0xff;
+        uint64 ratio = (Msr::read (Msr::MSR_PLATFORM_INFO) >> 8) & 0xff;
         freq_tsc = static_cast<unsigned>(ratio * 100000);
         freq_bus = dl ? 0 : 100000;
     } else if (model == 0x1a || model == 0x1e || model == 0x1f || model == 0x2e || /* Nehalem */
                model == 0x25 || model == 0x2c || model == 0x2f) { /* Xeon Westmere */
-        uint64 ratio = (Msr::read<uint64>(Msr::MSR_PLATFORM_INFO) >> 8) & 0xff;
+        uint64 ratio = (Msr::read (Msr::MSR_PLATFORM_INFO) >> 8) & 0xff;
         freq_tsc = static_cast<unsigned>(ratio * 133330);
         freq_bus = dl ? 0 : 133330;
     } else if (model == 0x17 || model == 0xf) { /* Core 2 */
-        freq_bus = Msr::read<uint64>(Msr::MSR_FSB_FREQ) & 0x7;
+        freq_bus = Msr::read (Msr::MSR_FSB_FREQ) & 0x7;
         switch (freq_bus) {
             case 0b101: freq_bus = 100000; break;
             case 0b001: freq_bus = 133330; break;
@@ -182,7 +194,7 @@ bool Lapic::read_tsc_freq()
             default:    freq_bus = 0;      break;
         }
 
-        uint64 ratio = (Msr::read<uint64>(Msr::IA32_PLATFORM_ID) >> 8) & 0x1f;
+        uint64 ratio = (Msr::read (Msr::IA32_PLATFORM_ID) >> 8) & 0x1f;
 
         freq_tsc = static_cast<unsigned>(freq_bus * ratio);
     }
@@ -190,32 +202,27 @@ bool Lapic::read_tsc_freq()
     return freq_tsc;
 }
 
-void Lapic::send_ipi (unsigned cpu, unsigned vector, Delivery_mode dlv, Shorthand dsh)
+void Lapic::handle_timer()
 {
-    while (EXPECT_FALSE (read (LAPIC_ICR_LO) & 1U << 12))
-        pause();
-
-    write (LAPIC_ICR_HI, Cpu::apic_id[cpu] << 24);
-    write (LAPIC_ICR_LO, dsh | 1U << 14 | dlv | vector);
-}
-
-void Lapic::therm_handler() {}
-
-void Lapic::perfm_handler() {}
-
-void Lapic::error_handler()
-{
-    write (LAPIC_ESR, 0);
-    write (LAPIC_ESR, 0);
-}
-
-void Lapic::timer_handler()
-{
-    bool expired = (freq_bus ? read (LAPIC_TMR_CCR) : Msr::read<uint64>(Msr::IA32_TSC_DEADLINE)) == 0;
+    bool expired = (freq_bus ? read (Reg32::TMR_CCR) : Msr::read (Msr::IA32_TSC_DEADLINE)) == 0;
     if (expired)
         Timeout::check();
 
     Rcu::update();
+}
+
+void Lapic::handle_error()
+{
+    write (Reg32::ESR, 0);
+    write (Reg32::ESR, 0);
+}
+
+void Lapic::handle_perfm() {}
+
+void Lapic::handle_therm() {}
+
+void Lapic::handle_cmchk()
+{
 }
 
 void Lapic::lvt_vector (unsigned vector)
@@ -223,10 +230,11 @@ void Lapic::lvt_vector (unsigned vector)
     unsigned lvt = vector - VEC_LVT;
 
     switch (vector) {
-        case VEC_LVT_TIMER: timer_handler(); break;
-        case VEC_LVT_ERROR: error_handler(); break;
-        case VEC_LVT_PERFM: perfm_handler(); break;
-        case VEC_LVT_THERM: therm_handler(); break;
+        case VEC_LVT_TIMER: handle_timer(); break;
+        case VEC_LVT_ERROR: handle_error(); break;
+        case VEC_LVT_PERFM: handle_perfm(); break;
+        case VEC_LVT_THERM: handle_therm(); break;
+        case VEC_LVT_CMCHK: handle_cmchk(); break;
     }
 
     eoi();
@@ -260,7 +268,7 @@ bool Lapic::hlt_other_cpus()
 {
     bool success = true;
 
-    for (unsigned cpu = 0; cpu < NUM_CPU; cpu++) {
+    for (cpu_t cpu = 0; cpu < NUM_CPU; cpu++) {
 
         if (!Hip::cpu_online (cpu))
             continue;
@@ -270,7 +278,7 @@ bool Lapic::hlt_other_cpus()
 
         unsigned ctr = Counter::remote (cpu, VEC_IPI_HLT - VEC_IPI);
 
-        Lapic::send_ipi (cpu, VEC_IPI_HLT);
+        Lapic::send_cpu (VEC_IPI_HLT, cpu);
 
         bool sent = Lapic::pause_loop_until(500, [&] {
             return (Counter::remote (cpu, VEC_IPI_HLT - VEC_IPI) == ctr); });

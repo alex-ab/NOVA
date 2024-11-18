@@ -278,9 +278,9 @@ void Ec::handle_hazard (mword hzd, void (*func)())
         current->regs.clr_hazard (HZD_TSC_AUX);
 
         if ((func == ret_user_vmresume) || (func == ret_user_vmrun))
-            Msr::write<uint64>(Msr::IA32_TSC_AUX, current->regs.tsc_aux);
+            Msr::write (Msr::IA32_TSC_AUX, current->regs.tsc_aux);
         else
-            Msr::write<uint64>(Msr::IA32_TSC_AUX, Cpu::id);
+            Msr::write (Msr::IA32_TSC_AUX, Cpu::id);
     }
 
     if (hzd & HZD_DS_ES) {

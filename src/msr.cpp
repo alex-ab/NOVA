@@ -57,7 +57,7 @@ void Msr::user_access_amd(Utcb &utcb)
             return false;
         }
 
-        return Msr::guard_read(static_cast<enum Register>(msr), msr);
+        return Msr::guard_read(Msr::Reg64(msr), msr);
 
     }, [](uint64 const &msr, uint64 const &value) {
 
@@ -72,7 +72,7 @@ void Msr::user_access_amd(Utcb &utcb)
             return false;
         }
 
-        return Msr::guard_write(static_cast<enum Register>(msr), write_value);
+        return Msr::guard_write(Msr::Reg64(msr), write_value);
     });
 }
 
@@ -107,15 +107,15 @@ void Msr::user_access_intel(Utcb &utcb)
             break;
         case Msr::IA32_HWP_CAPABILITIES:
             if (!Cpu::feature(Cpu::Feature::FEAT_HWP_7)) return false;
-            if (!(Msr::read<uint64>(Msr::IA32_PM_ENABLE) & 1)) return false;
+            if (!(Msr::read (Msr::IA32_PM_ENABLE) & 1)) return false;
             break;
         case Msr::IA32_HWP_REQUEST_PKG:
             if (!Cpu::feature(Cpu::Feature::FEAT_HWP_11)) return false;
-            if (!(Msr::read<uint64>(Msr::IA32_PM_ENABLE) & 1)) return false;
+            if (!(Msr::read (Msr::IA32_PM_ENABLE) & 1)) return false;
             break;
         case Msr::IA32_HWP_REQUEST:
             if (!Cpu::feature(Cpu::Feature::FEAT_HWP_7)) return false;
-            if (!(Msr::read<uint64>(Msr::IA32_PM_ENABLE) & 1)) return false;
+            if (!(Msr::read (Msr::IA32_PM_ENABLE) & 1)) return false;
             break;
 
         case MSR_CORE_C1_RESIDENCY:
@@ -160,7 +160,7 @@ void Msr::user_access_intel(Utcb &utcb)
             return false;
         }
 
-        return Msr::guard_read(static_cast<enum Register>(msr), msr);
+        return Msr::guard_read(Msr::Reg64(msr), msr);
 
     }, [](uint64 const &msr, uint64 const &value) {
 
@@ -176,19 +176,19 @@ void Msr::user_access_intel(Utcb &utcb)
             break;
         case Msr::IA32_HWP_REQUEST:
             if (!Cpu::feature(Cpu::Feature::FEAT_HWP_7)) return false;
-            if (!(Msr::read<uint64>(Msr::IA32_PM_ENABLE) & 1)) return false;
+            if (!(Msr::read (Msr::IA32_PM_ENABLE) & 1)) return false;
             break;
         case Msr::IA32_ENERGY_PERF_BIAS:
             if (!Cpu::feature(Cpu::Feature::FEAT_EPB)) return false;
             break;
         case Msr::IA32_HWP_REQUEST_PKG:
             if (!Cpu::feature(Cpu::Feature::FEAT_HWP_11)) return false;
-            if (!(Msr::read<uint64>(Msr::IA32_PM_ENABLE) & 1)) return false;
+            if (!(Msr::read (Msr::IA32_PM_ENABLE) & 1)) return false;
             break;
         default:
             return false;
         }
 
-        return Msr::guard_write(static_cast<enum Register>(msr), write_value);
+        return Msr::guard_write(Msr::Reg64(msr), write_value);
     });
 }

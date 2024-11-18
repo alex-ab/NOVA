@@ -40,17 +40,17 @@ Sc *Sc::list[Sc::priorities];
 
 unsigned Sc::prio_top;
 
-Sc::Sc (Pd *own, mword sel, Ec *e) : Kobject (SC, static_cast<Space_obj *>(own), sel, 0x1, free), ec (e), cpu (static_cast<unsigned>(sel)), prio (0), budget (Lapic::freq_tsc * 1000), left (0)
+Sc::Sc (Pd *own, mword sel, Ec *e) : Kobject (SC, static_cast<Space_obj *>(own), sel, 0x1, free), ec (e), cpu (static_cast<cpu_t>(sel)), prio (0), budget (Lapic::freq_tsc * 1000), left (0)
 {
     trace (TRACE_SYSCALL, "SC:%p created (PD:%p Kernel)", this, own);
 }
 
-Sc::Sc (Pd *own, mword sel, Ec *e, unsigned c, unsigned p, unsigned q) : Kobject (SC, static_cast<Space_obj *>(own), sel, 0x1, free, pre_free), ec (e), cpu (c), prio (static_cast<uint16>(p)), budget (Lapic::freq_tsc / 1000 * q), left (0)
+Sc::Sc (Pd *own, mword sel, Ec *e, cpu_t c, unsigned p, unsigned q) : Kobject (SC, static_cast<Space_obj *>(own), sel, 0x1, free, pre_free), ec (e), cpu (c), prio (static_cast<uint16>(p)), budget (Lapic::freq_tsc / 1000 * q), left (0)
 {
     trace (TRACE_SYSCALL, "SC:%p created (EC:%p CPU:%#x P:%#x Q:%#x)", this, e, c, p, q);
 }
 
-Sc::Sc (Pd *own, Ec *e, unsigned c, Sc *x) : Kobject (SC, static_cast<Space_obj *>(own), 0, 0x1, free_xcpu), ec (e), cpu (c), prio (x->prio), budget (x->budget), left (x->left)
+Sc::Sc (Pd *own, Ec *e, cpu_t c, Sc *x) : Kobject (SC, static_cast<Space_obj *>(own), 0, 0x1, free_xcpu), ec (e), cpu (c), prio (x->prio), budget (x->budget), left (x->left)
 {
     trace (TRACE_SYSCALL, "SC:%p created (EC:%p CPU:%#x P:%#x Q:%#llx) - xCPU", this, e, c, prio, budget / (Lapic::freq_bus / 1000));
 }
@@ -179,7 +179,7 @@ void Sc::remote_enqueue(bool inc_ref)
             next->prev = prev->next = this;
         } else {
             r->queue = prev = next = this;
-            Lapic::send_ipi (cpu, VEC_IPI_RRQ);
+            Lapic::send_cpu (VEC_IPI_RRQ, cpu);
         }
     }
 }
@@ -238,7 +238,7 @@ void Sc::pre_free(Rcu_elem * a)
         if (s->ec)
             s->ec->flush_from_cpu();
     } else
-        Lapic::send_ipi (s->cpu, VEC_IPI_RKE);
+        Lapic::send_cpu (VEC_IPI_RKE, s->cpu);
 }
 
 bool Sc::remove(Sc * s)

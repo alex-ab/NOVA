@@ -4,7 +4,8 @@
  * Copyright (C) 2009-2011 Udo Steinberg <udo@hypervisor.org>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
- * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -22,6 +23,14 @@
 
 #include "types.hpp"
 #include "util.hpp"
+
+/*
+ * Compute the bit index of the most significant 1-bit
+ */
+static constexpr int bit_scan_msb (unsigned long v)
+{
+    return !v ? -1 : 8 * sizeof (v) - 1 - __builtin_clzl (v);
+}
 
 ALWAYS_INLINE
 inline long int bit_scan_reverse (mword val)
