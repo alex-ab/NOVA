@@ -25,6 +25,52 @@
 #include "stdio.hpp"
 #include "timer.hpp"
 #include "uefi.hpp"
+#include "multiboot.hpp"
+#include "multiboot2.hpp"
+
+static uintptr_t mbi2(uintptr_t rsdp)
+{
+    if (Multiboot::p0 != Multiboot2::MAGIC)
+        return rsdp;
+
+    constexpr auto r { Paging::R };
+    constexpr auto a { Memattr::ram() };
+    constexpr auto w { 0 };
+
+    auto const p { uintptr_t(Multiboot::p1) & ~0xffful };
+    auto const o { uintptr_t(Multiboot::p1) &  0xffful };
+    auto const h { Hptp::map_tmp (p, sizeof (Multiboot2::Header), r, a, w) };
+
+    if (!h)
+        return rsdp;
+
+    auto const * mbi = reinterpret_cast<Multiboot2::Header const *>(uintptr_t(h) + o);
+
+    auto const m { Hptp::map_tmp (p, o + mbi->total_size(), r, a, w) };
+
+    if (!m)
+        return rsdp;
+
+    mbi = reinterpret_cast<Multiboot2::Header const *>(uintptr_t(m) + o);
+
+    mbi->for_each_tag([&](Multiboot2::Tag const * tag) {
+
+        if (tag->type == Multiboot2::TAG_ACPI_2) {
+            auto offset = tag->rsdp() - uintptr_t(m);
+            rsdp = p + offset;
+            return true; /* break */
+        }
+
+        if (!rsdp && tag->type == Multiboot2::TAG_ACPI_1) {
+            auto offset = tag->rsdp() - uintptr_t(m);
+            rsdp = p + offset;
+        }
+
+        return false; /* continue */
+    });
+
+    return rsdp;
+}
 
 bool Acpi::init()
 {
@@ -32,7 +78,7 @@ bool Acpi::init()
 
         auto &rsdp { Uefi::info.rsdp };
 
-        if (!rsdp && !(rsdp = rsdp_find()))
+        if (!rsdp && !(rsdp = rsdp_find()) && !(rsdp = mbi2(rsdp)))
             return false;
 
         void const *ptr { Hptp::map_tmp (rsdp, sizeof (Acpi_table_rsdp), Paging::R, Memattr::ram(), 0) };
