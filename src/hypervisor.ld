@@ -121,7 +121,7 @@ SECTIONS
 
         PROVIDE_HIDDEN (KMEM_HVAS = .);
 
-        . = ALIGN (ABSOLUTE (.) + 30M, PAGE_SIZE (1));
+        . = ALIGN (ABSOLUTE (.) + 128M, PAGE_SIZE (1));
 
     } : kern
 
