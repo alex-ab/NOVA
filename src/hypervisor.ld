@@ -120,7 +120,7 @@ SECTIONS
 
         PROVIDE_HIDDEN (KMEM_HVAF = .);
 
-        . = ALIGN(16M);
+        . = ALIGN(128M);
 
     } : kern
 
