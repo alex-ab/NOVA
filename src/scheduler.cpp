@@ -96,6 +96,9 @@ auto Scheduler::Release::dequeue()
 
 void Scheduler::unblock (Sc *sc)
 {
+    if (!sc->ref)
+        trace(0, " dead walking SC ref=%u sc=%p ec=%p", unsigned(sc->ref), sc, &*sc->ec);
+
     if (Cpu::id == sc->cpu)
         ready.enqueue (sc, Timer::time());
     else

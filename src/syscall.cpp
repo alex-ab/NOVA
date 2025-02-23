@@ -95,6 +95,13 @@ void Ec::recv_user (Ec *const self)
 
     ec->get_utcb()->copy (mtd, self->get_utcb());
 
+    if (ec->get_utcb()->mr[0xa0] == 0xbad)
+        trace (0, "%s mtd=%u %lx %lx %lx %lx", __func__, unsigned(mtd),
+               ec->get_utcb()->mr[0],
+               ec->get_utcb()->mr[1],
+               ec->get_utcb()->mr[2],
+               ec->get_utcb()->mr[3]);
+
     Ec_arch::ret_user_hypercall (self);
 }
 
@@ -142,8 +149,10 @@ template<Ec::cont_t C> void Ec::send_msg (Ec *const self)
     auto const obj { self->regs.get_obj() };
     auto const cpt { obj->lookup (self->evt + r.ep()) };
 
-    if (!cpt.validate (Capability::Perm_pt::EVENT)) [[unlikely]]
+    if (!cpt.validate (Capability::Perm_pt::EVENT)) [[unlikely]] {
+        trace (0, "pt not found self->evt=%lx r.ep()=%lx", self->evt, r.ep());
         self->kill ("PT not found");
+    }
 
     auto const pt { static_cast<Pt *>(cpt.obj()) };
     auto const ec { pt->get_ec() };
@@ -176,9 +185,20 @@ void Ec::sys_ipc_call (Ec *const self)
     if (self->cpu != ec->cpu) [[unlikely]]
         sys_finish<Status::BAD_CPU> (self);
 
+    auto mtd = unsigned(r.mtd());
+
+    if (self->get_utcb()->mr[0xa0] == 0xbad || r.mtd() == 0xa0)
+        trace (0, "%s Ec=%p mtd=%u %lx %lx %lx %lx", __func__, self, mtd,
+               self->get_utcb()->mr[0],
+               self->get_utcb()->mr[1],
+               self->get_utcb()->mr[2],
+               self->get_utcb()->mr[3]);
+    if (mtd == 0xa0)
+        mtd = 3;
+
     assert (ec->subtype == Kobject::Subtype::EC_LOCAL);
 
-    self->rendezvous (ec, Ec_arch::ret_user_hypercall, recv_user, pt->get_ip(), pt->get_id(), r.mtd());
+    self->rendezvous (ec, Ec_arch::ret_user_hypercall, recv_user, pt->get_ip(), pt->get_id(), mtd);
 
     if (r.timeout()) [[unlikely]]
         sys_finish<Status::TIMEOUT> (self);
@@ -194,11 +214,28 @@ void Ec::sys_ipc_reply (Ec *const self)
 
     auto const ec { self->caller };
 
+#if 0
+    if (self->get_utcb()->mr[0xa0] == 0xbad)
+        trace (0, "%s %lx %lx %lx", __func__,
+               ec->get_utcb()->mr[0],
+               ec->get_utcb()->mr[1],
+               ec->get_utcb()->mr[2]);
+#endif
+
     if (ec) [[likely]] {
 
         if (ec->cont == Ec_arch::ret_user_hypercall) [[likely]] {
             Sys_abi (ec->sys_regs()).p1() = r.mtd_u();
             self->get_utcb()->copy (r.mtd_u(), ec->get_utcb());
+
+#if 0
+            if (self->get_utcb()->mr[0xa0] == 0xbad)
+                trace (0, "%s %lx %lx %lx", __func__,
+                       ec->get_utcb()->mr[0],
+                       ec->get_utcb()->mr[1],
+                       ec->get_utcb()->mr[2]);
+#endif
+
         }
 
         else if (!static_cast<Ec_arch *>(ec)->state_save (self, r.mtd_a())) [[unlikely]]
@@ -242,7 +279,7 @@ void Ec::sys_create_ec (Ec *const self)
 {
     Sys_create_ec r { self->sys_regs() };
 
-    trace (TRACE_SYSCALL, "EC:%p %s SEL:%#lx PD:%#lx CPU:%#x HVA:%#lx SP:%#lx EVT:%#lx", static_cast<void *>(self), __func__, r.sel(), r.pd(), r.cpu(), r.hva(), r.sp(), r.evt());
+    trace (0, "EC:%p %s SEL:%#lx PD:%#lx CPU:%#x HVA:%#lx SP:%#lx EVT:%#lx", static_cast<void *>(self), __func__, r.sel(), r.pd(), r.cpu(), r.hva(), r.sp(), r.evt());
 
     if (r.hva() >= Space_hst::selectors() << PAGE_BITS) [[unlikely]]
         self->sys_finish_status (Status::BAD_PAR);
@@ -257,7 +294,9 @@ void Ec::sys_create_ec (Ec *const self)
         self->sys_finish_status (Status::BAD_CAP);
 
     Status s;
-    Pd::create_ec (s, obj, r.sel(), static_cast<Pd *>(cpd.obj()), r.cpu(), r.evt(), r.sp(), r.hva(), r.flg());
+    auto ec_new = Pd::create_ec (s, obj, r.sel(), static_cast<Pd *>(cpd.obj()), r.cpu(), r.evt(), r.sp(), r.hva(), r.flg());
+
+    trace (0, "EC:%p created", ec_new);
 
     self->sys_finish_status (s);
 }
@@ -369,6 +408,9 @@ void Ec::sys_ctrl_pd (Ec *const self)
         else if (st == Kobject::Subtype::MSR && dt == st)
             self->sys_finish_status (static_cast<Space_msr *>(cdt.obj())->delegate (static_cast<Space_msr *>(cst.obj()), r.ssb(), r.dsb(), r.ord(), r.pmm()));
     }
+
+    trace (0, "ctrl_pd invalid cap %lx", self->exc_regs().ip());
+    trace (0, "EC:%p %s SRC:%#lx DST:%#lx SSB:%#lx DSB:%#lx ORD:%u PMM:%#x", static_cast<void *>(self), __func__, r.src(), r.dst(), r.ssb(), r.dsb(), r.ord(), r.pmm());
 
     self->sys_finish_status (Status::BAD_CAP);
 }

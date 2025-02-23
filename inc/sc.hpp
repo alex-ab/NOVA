@@ -44,7 +44,7 @@ class Sc final : public Kobject, public Queue<Sc>::Element
 
         void collect() override final
         {
-            trace (TRACE_DESTROY, "KOBJ: SC %p collected", static_cast<void *>(this));
+            trace (0, "KOBJ: SC %p collected", static_cast<void *>(this));
         }
 
     public:

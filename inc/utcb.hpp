@@ -27,6 +27,7 @@
 class Utcb final
 {
     private:
+public:
         union {
             uintptr_t mr[Mtd_user::items];
             Utcb_arch state;

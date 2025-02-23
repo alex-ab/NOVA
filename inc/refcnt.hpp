@@ -28,9 +28,10 @@
 class Refcnt
 {
     private:
+public:
         Atomic<size_t> ref { 0 };
 
-        virtual void collect() {}
+        virtual void collect() { trace(0, "this collect should not be called"); }
 
     public:
         // Constructor
@@ -65,6 +66,9 @@ class Refcnt
 
             if (--ref == 0)
                 collect();
+
+            if (ref == 0)
+                trace (0, "remove me ref 0");
         }
 };
 
