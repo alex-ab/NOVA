@@ -79,7 +79,7 @@ void Acpi_table_fadt::parse() const
         if (regs[i].res)
             switch (regs[i].reg.asid) {
              // case Acpi_gas::Asid::MEM: Space_hst::access_ctrl (regs[i].reg.addr, regs[i].reg.bits / 8, Paging::NONE); break;
-                case Acpi_gas::Asid::PIO: Space_pio::access_ctrl (regs[i].reg.addr, regs[i].reg.bits / 8, Paging::NONE); break;
+             // case Acpi_gas::Asid::PIO: Space_pio::access_ctrl (regs[i].reg.addr, regs[i].reg.bits / 8, Paging::NONE); break;
                 default: break;
             }
     }
