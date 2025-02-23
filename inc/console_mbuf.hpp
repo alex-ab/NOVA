@@ -30,7 +30,7 @@ class Console_mbuf_mmio final
         Atomic<uint32_t, __ATOMIC_RELAXED, __ATOMIC_RELAXED> r_idx { 0 };
         Atomic<uint32_t, __ATOMIC_RELAXED, __ATOMIC_SEQ_CST> w_idx { 0 };
 
-        static constexpr unsigned ord       { 0 };
+        static constexpr unsigned ord       { 1 };
         static constexpr unsigned size      { BIT (PAGE_BITS + ord) };
         static constexpr unsigned entries   { size - sizeof (r_idx) - sizeof (w_idx) };
 
