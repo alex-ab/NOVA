@@ -218,6 +218,7 @@ void Ec::create_root()
 
     Scheduler::unblock (sc);
 
+//    Console::flush();
     Console::flush();
 }
 
