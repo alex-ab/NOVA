@@ -94,6 +94,18 @@ public:
             }
         }
 
+        void release(Quota &to, mword amount)
+        {
+            {
+                Lock_guard <Spinlock> guard (lock);
+                upli -= amount;
+                used -= amount;
+            }
+
+            Lock_guard <Spinlock> guard (to.lock);
+            to.upli += amount;
+        }
+
         bool hit_limit(mword free_space = 0)
         {
              if (free_space > upli)

@@ -104,13 +104,13 @@ class Buddy : public List<Buddy>
 
         static void *alloc (unsigned short ord, Quota &quota, Fill fill);
 
-        static void free (mword addr, Quota &quota);
+        static void free (mword addr, Quota &quota, Quota * = nullptr);
 
      private:
 
         void *_alloc (unsigned short ord, Quota &quota, Fill fill);
 
-        void _free (mword addr, Quota &quota);
+        void _free (mword addr, Quota &quota, Quota * = nullptr);
 
      public:
 

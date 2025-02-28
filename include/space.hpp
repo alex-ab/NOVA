@@ -76,6 +76,7 @@ class Space
             addreg (quota, cache, base, addr - base, node->node_attr, node->node_type);
             addreg (quota, cache, next, last - next, node->node_attr, node->node_type);
 
-            Mdb::destroy (node, quota, cache);
+            Quota dummy; /* lost quota XXX */
+            Mdb::destroy (node, quota, cache, dummy);
         }
 };

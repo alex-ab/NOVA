@@ -67,7 +67,7 @@ static void free_mdb(Rcu_elem * e)
     S *space = static_cast<S *>(mdb->space);
     Pd *pd = static_cast<Pd *>(space);
 
-    Mdb::destroy (mdb, pd->quota, pd->mdb_cache);
+    Mdb::destroy (mdb, pd->quota, pd->mdb_cache, Pd::root.quota);
 }
 
 template <typename S>
@@ -92,7 +92,7 @@ bool Pd::delegate (Pd *snd, mword const snd_base, mword const rcv_base, mword co
         Mdb *node = new (qg, mdb_cache) Mdb (static_cast<S *>(this), free_mdb<S>, b - mdb->node_base + mdb->node_phys, b - snd_base + rcv_base, o, 0, mdb->node_type, S::sticky_sub(mdb->node_sub) | sub, static_cast<uint16>(mdb->dpth + 1));
 
         if (!S::tree_insert (node)) {
-            Mdb::destroy (node, qg, mdb_cache);
+            Mdb::destroy (node, qg, mdb_cache, Pd::root.quota);
 
             Mdb * x = S::tree_lookup(b - snd_base + rcv_base);
             if (!x || x->prnt != mdb)

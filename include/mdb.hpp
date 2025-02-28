@@ -85,7 +85,7 @@ class Mdb : public Avl, public Rcu_elem
         static inline void *operator new (size_t, Quota &quota, Slab_cache &cache) { return cache.alloc(quota); }
 
         ALWAYS_INLINE
-        static inline void destroy (Mdb *obj, Quota &quota, Slab_cache &cache) { obj->~Mdb(); cache.free (obj, quota); }
+        static inline void destroy (Mdb *obj, Quota &from, Slab_cache &cache, Quota &to) { obj->~Mdb(); cache.free (obj, from, &to); }
 
-        template <typename T> void destroy (T *, Quota &, Slab_cache &);
+        template <typename T> void destroy (T *, Quota &, Slab_cache &, Quota &);
 };

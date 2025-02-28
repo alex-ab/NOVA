@@ -216,7 +216,7 @@ static void free_mdb(Rcu_elem * e)
     Space_mem *space = static_cast<Space_mem *>(mdb->space);
     Pd        *pd    = static_cast<Pd *>(space);
 
-    Mdb::destroy (mdb, pd->quota, pd->mdb_cache);
+    Mdb::destroy (mdb, pd->quota, pd->mdb_cache, Pd::root.quota);
 }
 
 bool Space_mem::insert_utcb (Quota &quota, Slab_cache &cache, mword b, mword phys)
@@ -232,7 +232,7 @@ bool Space_mem::insert_utcb (Quota &quota, Slab_cache &cache, mword b, mword phy
     if (tree_insert (mdb))
         return true;
 
-    Mdb::destroy (mdb, quota, cache);
+    Mdb::destroy (mdb, quota, cache, Pd::root.quota);
 
     return false;
 }

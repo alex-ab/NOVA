@@ -57,7 +57,7 @@ public:
         /*
          * Front end deallocator
          */
-        void free (void *ptr, Quota &quota);
+        void free (void *ptr, Quota &quota, Quota * = nullptr);
 
         void free (Quota &quota);
 };
@@ -78,10 +78,10 @@ class Slab
         }
 
         ALWAYS_INLINE
-        static inline void destroy(Slab *slab, Quota &quota)
+        static inline void destroy(Slab *slab, Quota &quota, Quota * to = nullptr)
         {
             slab->~Slab();
-            Buddy::allocator.free (reinterpret_cast<mword>(slab), quota);
+            Buddy::allocator.free (reinterpret_cast<mword>(slab), quota, to);
         }
 
         Slab (Slab_cache *slab_cache);

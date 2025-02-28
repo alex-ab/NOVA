@@ -140,7 +140,7 @@ void *Buddy::alloc (unsigned short ord, Quota &quota, Fill fill)
  * Free physically contiguous memory region.
  * @param virt     Linear block base address
  */
-void Buddy::_free (mword virt, Quota &quota)
+void Buddy::_free (mword virt, Quota &from, Quota *to)
 {
     signed long idx = page_to_index (virt);
 
@@ -155,7 +155,10 @@ void Buddy::_free (mword virt, Quota &quota)
     // Ensure corresponding physical block is order-aligned
     assert ((virt_to_phys (virt) & ((1ul << (block->ord + PAGE_BITS)) - 1)) == 0);
 
-    quota.free(1ul << block->ord);
+    if (to)
+        from.release(*to, 1ul << block->ord);
+    else
+        from.free(1ul << block->ord);
 
     Lock_guard <Spinlock> guard (lock);
 
@@ -195,12 +198,12 @@ void Buddy::_free (mword virt, Quota &quota)
     block->next->prev = h->next = block;
 }
 
-void Buddy::free (mword virt, Quota &quota)
+void Buddy::free (mword virt, Quota &quota, Quota * to)
 {
     for (Buddy *b = list; b; b = b->next) {
         signed long idx = b->page_to_index (virt);
         if (idx >= b->min_idx && idx < b->max_idx) {
-            b->_free(virt, quota);
+            b->_free(virt, quota, to);
             return;
         }
     }
