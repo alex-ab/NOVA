@@ -30,6 +30,7 @@ class Slab_cache
     private:
         Spinlock    lock { };
         Slab *      curr;
+public:
         Slab *      head;
 
         /*
@@ -105,4 +106,33 @@ class Slab
 
         ALWAYS_INLINE
         inline void free (void *ptr);
+
+        void stats(auto const text, auto const &fn) const
+        {
+            auto stop = this;
+            auto iter = this;
+
+            if (!iter || !stop)
+                return;
+
+            unsigned long slab_count    = 0;
+            unsigned long elements_used = 0;
+            unsigned long elements_max  = 0;
+            unsigned long suspicious    = 0;
+
+            do {
+                slab_count ++;
+
+                if (!iter->cache) suspicious ++;
+                else if (iter->cache->elem < iter->avail) suspicious ++;
+                else {
+                    elements_used += iter->cache->elem - iter->avail;
+                    elements_max  += iter->cache->elem;
+                }
+
+                iter = iter->next;
+            } while (iter && iter != stop);
+
+            fn(text, slab_count, elements_used, elements_max, suspicious);
+        }
 };

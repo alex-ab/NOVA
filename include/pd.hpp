@@ -89,6 +89,30 @@ class Pd : public Kobject, public Refcount, public Space_mem, public Space_pio, 
 
         Pd (Pd *own, mword sel, mword a);
 
+        inline void verbose_debug()
+        {
+            trace(0, "%p usage/limit %lu/%lu o=%lu", this,
+                  quota.usage(), quota.limit(), quota.over);
+
+            auto const & slab_stats = [&] (auto const text,
+                                           auto const slab_count,
+                                           auto const elements_used,
+                                           auto const elements_max,
+                                           auto const suspicious_count)
+            {
+                 trace(0, "%p %s: slabs=%lu elements=%lu/%lu, suspicious=%lu",
+                       this, text, slab_count, elements_used, elements_max,
+                       suspicious_count);
+            };
+
+            if (pt_cache.head)  pt_cache.head ->stats("pt ", slab_stats);
+            if (mdb_cache.head) mdb_cache.head->stats("mdb", slab_stats);
+            if (sm_cache.head)  sm_cache.head ->stats("sm ", slab_stats);
+            if (sc_cache.head)  sc_cache.head ->stats("sc ", slab_stats);
+            if (ec_cache.head)  ec_cache.head ->stats("ec ", slab_stats);
+            if (fpu_cache.head) fpu_cache.head->stats("fpu", slab_stats);
+        }
+
         ALWAYS_INLINE HOT
         inline void make_current()
         {

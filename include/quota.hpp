@@ -30,6 +30,7 @@ class Quota
         Spinlock lock { };
 
         mword used;
+public:
         mword over;
 
         mword upli;
