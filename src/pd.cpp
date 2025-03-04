@@ -453,19 +453,19 @@ Pd::~Pd()
 {
     pre_free(this);
 
-    Space_mem::hpt.clear(quota, Space_mem::hpt.dest_hpt, Space_mem::hpt.iter_hpt_lev);
+    Space_mem::hpt.clear(quota, Pd::root.quota, Space_mem::hpt.dest_hpt, Space_mem::hpt.iter_hpt_lev);
 
     if (Dpt::active())
-        Space_mem::dpt.clear(quota);
+        Space_mem::dpt.clear(quota, Pd::root.quota);
     else
     if (Ipt::active())
-        Space_mem::ipt.clear(quota);
+        Space_mem::ipt.clear(quota, Pd::root.quota);
 
-    Space_mem::npt.clear(quota);
+    Space_mem::npt.clear(quota, Pd::root.quota);
 
     for (unsigned cpu = 0; cpu < NUM_CPU; cpu++)
         if (Hip::cpu_online (cpu))
-            Space_mem::loc[cpu].clear(quota, Space_mem::hpt.dest_loc, Space_mem::hpt.iter_loc_lev);
+            Space_mem::loc[cpu].clear(quota, Pd::root.quota, Space_mem::hpt.dest_loc, Space_mem::hpt.iter_loc_lev);
 
     pt_cache.free(quota);
     sm_cache.free(quota);

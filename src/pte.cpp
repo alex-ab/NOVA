@@ -100,6 +100,7 @@ bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, E a, Type t)
         if (!e[i].val)
             continue;
 
+        /* XXX also !l for flushing ? */
         if (l && e[i].val != p)
             flush_tlb = true;
 
@@ -107,6 +108,9 @@ bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, E a, Type t)
             continue;
 
         if (l && !e[i].super(l)) {
+            if (l > 1)
+                trace (0, "XXX leaking memory");
+
             Pte::destroy(static_cast<P *>(Buddy::phys_to_ptr (e[i].addr())), quota);
             flush_tlb = true;
         }
@@ -115,24 +119,122 @@ bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, E a, Type t)
     if (F)
         flush (e, n * sizeof (E));
 
+    if (!a) {
+        release_empty(quota, v, l, false);
+        flush_tlb = true; /* XXX only if something changed by release_empty */
+    }
+
     return flush_tlb;
 }
 
+
 template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
-void Pte<P,E,L,B,F,V>::clear (Quota &quota, bool (*d) (Paddr, mword, unsigned), bool (*il) (unsigned, mword))
+void Pte<P,E,L,B,F,V>::release_empty (Quota &quota, E v, mword l, bool verbose)
+{
+    if (l + 1 >= L)
+        return;
+
+    auto const v_ls = v & ~((1ull << ((l + 1) * B + PAGE_BITS)) - 1);
+
+//    if (verbose)
+//        trace(0, "l=%lu v=%llx->%llx", l, uint64_t(v), uint64_t(v_ls));
+
+/* XXX - wrong - must per pt type done */
+    if (v_ls >= USER_ADDR)
+        return;
+
+    P * e_l = walk (quota, v_ls, l, false);
+
+//    if (verbose)
+//        trace(0, "l=%lu v=%llx->%llx e_l=%p", l, uint64_t(v), uint64_t(v_ls), e_l);
+
+    if (!e_l)
+        return;
+
+    bool unused = true;
+    unsigned use = 0;
+
+    for (unsigned long i = 0; i < (1 << B); i++) {
+
+        if (!e_l[i].val)
+            continue;
+
+        use ++;
+        unused = false;
+//        break;
+    }
+
+    if (!unused)
+        return;
+
+    if (verbose)
+        trace(0, "l=%lu, v=%llx->%llx used=%u", l, uint64_t(v), uint64_t(v_ls), use);
+
+    if (l + 1 > 2)
+        return;
+
+    auto const v_ln = v_ls & ~((1ull << ((l + 1 + 1) * B + PAGE_BITS)) - 1);
+    auto const v_no = v_ls - v_ln;
+    auto const v_ns = 1UL << ((l + 1) * B + PAGE_BITS);
+
+    P *e_n = walk (quota, v_ln, l + 1, false);
+
+    assert(e_n);
+
+    if (!e_n)
+        return;
+
+    if (verbose)
+        trace(0, "l=%lu, v=%llx->%llx v_no=%llx v_ns=%llx e_pos=%llu",
+              l + 1,
+              uint64_t(v_ls), uint64_t(v_ln), uint64_t(v_no), uint64_t(v_ns), v_no / v_ns);
+
+    auto const pos = v_no / v_ns;
+
+    if (verbose)
+        trace(0, "e_l %p -> e_n %p e_n[e_pos].addr()=%llx p=%p",
+              e_l, e_n, uint64_t(e_n ? e_n[pos].addr() : 0),
+              e_n ? static_cast<P *>(Buddy::phys_to_ptr (e_n[pos].addr())) : nullptr);
+
+    if (pos >= (1 << B))
+        return;
+
+    assert (e_n[pos].val);
+    assert (Buddy::phys_to_ptr(e_n[pos].addr()) == e_l);
+
+    if (!e_n[pos].val)
+        return;
+
+    if (e_n[pos].super(l + 1))
+        trace(0, " free up level=%lu super=%d", l + 1, e_n[pos].super(l + 1));
+
+    if (e_n[pos].super(l + 1))
+        return;
+
+     P *pl = static_cast<P *>(Buddy::phys_to_ptr (e_n[pos].addr()));
+
+     e_n[pos].val = 0;
+
+     release_empty(quota, v_ln, l + 1, true);
+
+     Pte::destroy(pl, quota);
+}
+
+template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
+void Pte<P,E,L,B,F,V>::clear (Quota &from, Quota &to, bool (*d) (Paddr, mword, unsigned), bool (*il) (unsigned, mword))
 {
     if (!val)
         return;
 
     P * e = static_cast<P *>(Buddy::phys_to_ptr (this->addr()));
 
-    e->free_up(quota, L - 1, e, 0, d, il);
+    e->free_up(from, to, L - 1, e, 0, d, il);
 
-    Pte::destroy (e, quota);
+    Pte::destroy (e, from, &to);
 }
 
 template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
-void Pte<P,E,L,B,F,V>::free_up (Quota &quota, unsigned l, P * e, mword v, bool (*d)(Paddr, mword, unsigned), bool (*il) (unsigned, mword))
+void Pte<P,E,L,B,F,V>::free_up (Quota &from, Quota &to, unsigned l, P * e, mword v, bool (*d)(Paddr, mword, unsigned), bool (*il) (unsigned, mword))
 {
     if (!e)
         return;
@@ -145,10 +247,10 @@ void Pte<P,E,L,B,F,V>::free_up (Quota &quota, unsigned l, P * e, mword v, bool (
         mword virt = v + (i << (l * B + PAGE_BITS));
 
         if (il ? il(l, virt) : l > 1)
-            p->free_up(quota, l - 1, p, virt, d, il);
+            p->free_up(from, to, l - 1, p, virt, d, il);
 
         if (!d || d(e[i].addr(), virt, l))
-            Pte::destroy(p, quota);
+            Pte::destroy(p, from, &to);
     }
 }
 

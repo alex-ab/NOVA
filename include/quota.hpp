@@ -161,6 +161,8 @@ public:
         void dump(void *, bool = true);
 };
 
+#include <stdio.hpp>
+
 class Quota_guard
 {
     private:
@@ -177,10 +179,17 @@ class Quota_guard
             if (!q.hit_limit(req))
                 return true;
 
+//            if (q.limit() || q.usage())
+//                trace (0, "XxX check %lu/%lu %lu", q.usage(), q.limit(), req);
+
             if (q.limit() <= q.usage())
                 req += q.usage() - q.limit();
-            else
+            else {
+//                if (q.limit() - q.usage() > req)
+                    trace (0, "XxX too large %lu %lu",
+                           q.limit() - q.usage(), req);
                 req -= q.limit() - q.usage();
+            }
 
             return r.transfer_to(q, req, false);
         }
