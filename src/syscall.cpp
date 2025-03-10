@@ -1110,6 +1110,11 @@ void Ec::sys_pd_ctrl()
 
     if (!src->quota.transfer_to(dst->quota, r->tra())) {
         trace (TRACE_ERROR, "%s: PD %p has insufficient kernel memory quota", __func__, src);
+
+        Quota quota { };
+        dst->hpt.debug_walk(quota, false);
+        trace (0, "used of dst=%lu", quota.usage());
+
         src->verbose_debug();
         dst->verbose_debug();
         sys_finish<Sys_regs::BAD_PAR>();

@@ -109,4 +109,7 @@ class Pte
         void clear (Quota &quota, bool (*) (Paddr, mword, unsigned) = nullptr, bool (*) (unsigned, mword) = nullptr);
 
         bool check(Quota_guard &qg, mword o) { return qg.check(o / (4096 / sizeof(E)) + L); }
+
+        void debug_walk       (Quota &, bool);
+        void debug_walk_level (Quota &, unsigned l, P *, mword, bool);
 };

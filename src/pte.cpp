@@ -24,6 +24,7 @@
 #include "hpt.hpp"
 #include "ipt.hpp"
 #include "pte.hpp"
+#include "stdio.hpp"
 
 mword Dpt::ord = ~0UL;
 mword Ept::ord = ~0UL;
@@ -149,6 +150,59 @@ void Pte<P,E,L,B,F,V>::free_up (Quota &quota, unsigned l, P * e, mword v, bool (
         if (!d || d(e[i].addr(), virt, l))
             Pte::destroy(p, quota);
     }
+}
+
+template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
+void Pte<P,E,L,B,F,V>::debug_walk (Quota &q, bool const verbose)
+{
+    if (!val)
+        return;
+
+    P * e = static_cast<P *>(Buddy::phys_to_ptr (this->addr()));
+
+    if (verbose)
+        trace (0, "l=%u: %llx: ", L - 1, 0ull);
+
+    e->debug_walk_level(q, L - 1, e, 0, verbose);
+}
+
+template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
+void Pte<P,E,L,B,F,V>::debug_walk_level (Quota &q, unsigned l, P * e, mword v, bool const verbose)
+{
+    if (!e)
+        return;
+
+    q.alloc(1);
+
+    unsigned cnt_entries = 0;
+
+    for (unsigned long i = 0; i < (1 << B); i++) {
+        if (!e[i].val)
+            continue;
+
+        P *p = static_cast<P *>(Buddy::phys_to_ptr (e[i].addr()));
+        mword virt = v + (i << (l * B + PAGE_BITS));
+
+        if (verbose)
+            trace (0, "%sl=%u:s=%u: %lx+%lx",
+                   l > 3 ? ""   :
+                   l > 2 ? " "  :
+                   l > 1 ? "  "  : "   ",
+                   l, e[i].super(l), virt, 1ul << (l * B + PAGE_BITS));
+
+        cnt_entries ++;
+
+        if (l >= 1 && !e[i].super(l))
+            p->debug_walk_level(q, l - 1, p, virt, verbose);
+    }
+
+    if (l >= 2)
+        trace (0, "%sl=%u %lx+%lx entries=%u",
+               l > 3 ? ""   :
+               l > 2 ? " "  :
+               l > 1 ? "  "  : "   ",
+               l, v, 1ul << (l * B + PAGE_BITS),
+               cnt_entries);
 }
 
 template class Pte<Dpt, uint64, 4, 9, true, false>;
