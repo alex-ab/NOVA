@@ -59,3 +59,5 @@
 #define SPC_LOCAL_OBJ   (END_SPACE_LIM - 0x20000000)
 
 #define END_SPACE_LIM   (~0UL + 1)
+
+#define PAGE_H_SIZE     0x4000

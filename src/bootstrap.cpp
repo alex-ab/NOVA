@@ -77,7 +77,7 @@ void bootstrap()
     // Create root task
     if (Cpu::bsp) {
         Hip::add_check();
-        Ec *root_ec = new (Pd::root) Ec (&Pd::root, EC_ROOTTASK, &Pd::root, Ec::root_invoke, Cpu::id, 0, USER_ADDR - 2 * PAGE_SIZE, 0, nullptr);
+        Ec *root_ec = new (Pd::root) Ec (&Pd::root, EC_ROOTTASK, &Pd::root, Ec::root_invoke, Cpu::id, 0, USER_ADDR - PAGE_H_SIZE - PAGE_SIZE, 0, nullptr);
         Sc *root_sc = new (Pd::root) Sc (&Pd::root, SC_ROOTTASK, root_ec, Cpu::id, Sc::default_prio, Sc::default_quantum);
         root_sc->remote_enqueue();
 

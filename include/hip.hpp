@@ -60,8 +60,12 @@ class Hip_mem
         uint32  aux;
 };
 
+class Hip_guard;
+
 class Hip
 {
+    friend class Hip_guard;
+
     private:
         uint32  signature;              // 0x0
         uint16  checksum;               // 0x4
@@ -83,6 +87,27 @@ class Hip
         Hip_cpu cpu_desc[NUM_CPU];
         Hip_mem mem_desc[];
 
+        ALWAYS_INLINE
+        static inline Hip *hip()
+        {
+            return reinterpret_cast<Hip *>(&PAGE_H);
+        }
+
+        Hip(const Hip&);
+        Hip &operator = (Hip const &);
+
+        INIT
+        static void for_each (Hip &hip, auto const &fn)
+        {
+            mword const mhv_cnt = (reinterpret_cast<mword>(&hip) + hip.length - reinterpret_cast<mword>(hip.mem_desc)) / sizeof(Hip_mem);
+
+            for (unsigned i = 0; i < mhv_cnt; i++) {
+                Hip_mem & m = *(hip.mem_desc + i);
+
+                fn (m);
+            }
+        }
+
     public:
         enum Feature {
             FEAT_IOMMU  = 1U << 0,
@@ -92,12 +117,6 @@ class Hip
 
         static mword root_addr;
         static mword root_size;
-
-        ALWAYS_INLINE
-        static inline Hip *hip()
-        {
-            return reinterpret_cast<Hip *>(&PAGE_H);
-        }
 
         static uint32 feature()
         {
@@ -120,55 +139,79 @@ class Hip
         }
 
         INIT
-        static void build (mword, mword);
+        static bool build (mword, mword);
 
         INIT
-        static void build_mbi1 (Hip_mem *&, mword);
+        static void build_mbi1 (Hip_guard &, mword);
 
         INIT
-        static void build_mbi2 (Hip_mem *&, mword);
+        static void build_mbi2 (Hip_guard &, mword);
         
-        template <typename T>
         INIT
-        static void add_fb (Hip_mem *&, T const *);
-
-        template <typename T>
-        INIT
-        static void add_systab (Hip_mem *&, T const *);
-
-        template <typename T>
-        INIT
-        static void add_mem (Hip_mem *&, T const *);
-
-        template <typename T>
-        INIT
-        static void add_mod (Hip_mem *&, T const *, uint32);
+        static void add_fb (Hip_guard &, auto const *);
 
         INIT
-        static void add_mhv (Hip_mem *&);
+        static void add_systab (Hip_guard &, auto const *);
 
         INIT
-        static void add_buddy (Hip_mem *&, Hip *, uint64 const, uint64 &, bool);
+        static void add_mem (Hip_guard &, auto const *);
 
         INIT
-        static void _add_buddy (Hip_mem *&, Hip *, uint64 const, uint64 &, Hip_mem const &);
-
-        template <typename T>
-        INIT
-        static void for_each (Hip &hip, T const fn)
-        {
-            mword const mhv_cnt = (reinterpret_cast<mword>(&hip) + hip.length - reinterpret_cast<mword>(hip.mem_desc)) / sizeof(Hip_mem);
-
-            for (unsigned i = 0; i < mhv_cnt; i++) {
-                Hip_mem * m = hip.mem_desc + i;
-
-                fn(*m);
-            }
-        }
+        static void add_mod (Hip_guard &, auto const *, uint32);
 
         INIT
-        static uint64 system_memory (Hip &);
+        static void add_mhv (Hip_guard &);
+
+        INIT
+        static void add_buddy (Hip_guard &, uint64 const, uint64 &, bool);
+
+        INIT
+        static void _add_buddy (Hip_guard &, uint64 const, uint64 &, Hip_mem const &);
+
+        INIT
+        static uint64 system_memory (Hip_guard &);
 
         static void add_cpu();
         static void add_check();
+};
+
+class Hip_guard
+{
+
+    private:
+
+        Hip & hip;
+
+        bool fail { };
+
+    public:
+
+        Hip_guard() : hip(*Hip::hip())
+        {
+            static_assert (PAGE_H_SIZE <= (1u << (sizeof(hip.length) * 8)), "HIP length field too small");
+
+            if (!hip.length)
+                hip.length = static_cast<uint16>(reinterpret_cast<mword>(hip.mem_desc) - reinterpret_cast<mword>(&hip));
+        }
+
+        void with_mem_desc(auto const &fn)
+        {
+            auto const mem_desc_size = sizeof (hip.mem_desc[0]);
+
+            auto const i = (hip.length + reinterpret_cast<mword>(&hip) - reinterpret_cast<mword>(hip.mem_desc)) / mem_desc_size;
+
+            if (mword(hip.length) + mem_desc_size > PAGE_H_SIZE) {
+                fail = true;
+                return;
+            }
+
+            fn (hip.mem_desc[i]);
+
+            hip.length += mem_desc_size;
+        }
+
+        void for_each(auto const &fn) { hip.for_each(hip, fn); }
+        void with_hip(auto const &fn) { fn(hip); }
+
+        bool ready() const { return !fail; }
 };

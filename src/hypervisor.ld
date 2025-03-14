@@ -93,7 +93,7 @@ SECTIONS
 
         PROVIDE (PAGE_0 = .); PROVIDE (FRAME_0 = . - OFFSET); . += 4K;
         PROVIDE (PAGE_1 = .); PROVIDE (FRAME_1 = . - OFFSET); . += 4K;
-        PROVIDE (PAGE_H = .); PROVIDE (FRAME_H = . - OFFSET); . += 4K;
+        PROVIDE (PAGE_H = .); PROVIDE (FRAME_H = . - OFFSET); . += PAGE_H_SIZE;
 
         PROVIDE (PDBR  = . - OFFSET);
 #ifdef __i386__

@@ -27,7 +27,7 @@ extern char GIT_VER;
 
 extern char PAGE_0[PAGE_SIZE];
 extern char PAGE_1[PAGE_SIZE];
-extern char PAGE_H[PAGE_SIZE];
+extern char PAGE_H[PAGE_H_SIZE];
 extern mword PAGE_L;
 
 extern char FRAME_0;

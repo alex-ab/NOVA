@@ -443,10 +443,12 @@ void Ec::root_invoke()
     if (!Hip::root_addr || e->ei_magic != 0x464c457f || e->ei_class != ELF_CLASS || e->ei_data != 1 || e->type != 2 || e->machine != ELF_MACHINE)
         die ("No ELF");
 
+    auto const hip_addr = USER_ADDR - PAGE_H_SIZE;
+
     unsigned count = e->ph_count;
     current->regs.set_pt (Cpu::id);
     current->regs.set_ip (e->entry);
-    current->regs.set_sp (USER_ADDR - PAGE_SIZE);
+    current->regs.set_sp (hip_addr);
 
     ELF_PHDR *p = static_cast<ELF_PHDR *>(Hpt::remap (Pd::kern.quota, Hip::root_addr + e->ph_offset));
 
@@ -471,7 +473,14 @@ void Ec::root_invoke()
     }
 
     // Map hypervisor information page
-    Pd::current->delegate<Space_mem>(&Pd::kern, reinterpret_cast<Paddr>(&FRAME_H) >> PAGE_BITS, (USER_ADDR - PAGE_SIZE) >> PAGE_BITS, 0, 1);
+    {
+        mword phys = align_dn (reinterpret_cast<Paddr>(&FRAME_H), PAGE_SIZE);
+        mword virt = align_dn (hip_addr, PAGE_SIZE);
+        mword size = align_up (PAGE_H_SIZE, PAGE_SIZE);
+
+        for (unsigned long o; size; size -= 1UL << o, phys += 1UL << o, virt += 1UL << o)
+            Pd::current->delegate<Space_mem>(&Pd::kern, phys >> PAGE_BITS, virt >> PAGE_BITS, (o = min (max_order (phys, size), max_order (virt, size))) - PAGE_BITS, 1);
+    }
 
     Space_obj::insert_root (Pd::kern.quota, Pd::current);
     Space_obj::insert_root (Pd::kern.quota, Ec::current);
