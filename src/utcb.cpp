@@ -71,8 +71,7 @@ bool Utcb::load_exc (Cpu_regs *regs)
         qual[1] = regs->cr2;
     }
 
-    asm volatile ("" : : : "memory");
-
+    barrier();
     mtd = m;
     items = sizeof (Utcb_data) / sizeof (mword);
 
@@ -275,8 +274,7 @@ bool Utcb::load_vmx (Cpu_regs *regs)
 
     exit_value = regs->dst_portal;
 
-    asm volatile ("" : : : "memory");
-
+    barrier();
     mtd = m;
     items = sizeof (Utcb_data) / sizeof (mword);
 
@@ -441,11 +439,11 @@ bool Utcb::save_vmx (Cpu_regs *regs)
 
     mword host_msr_area_phys = Vmcs::read(Vmcs::EXI_MSR_LD_ADDR);
     Msr_area *host_msr_area = reinterpret_cast<Msr_area*>(Buddy::phys_to_ptr(host_msr_area_phys));
-    host_msr_area->ia32_star.msr_data = Msr::read (Msr::IA32_STAR);
-    host_msr_area->ia32_lstar.msr_data = Msr::read (Msr::IA32_LSTAR);
-    host_msr_area->ia32_cstar.msr_data = Msr::read (Msr::IA32_CSTAR);
-    host_msr_area->ia32_sfmask.msr_data = Msr::read (Msr::IA32_SFMASK);
-    host_msr_area->ia32_kernel_gs_base.msr_data = Msr::read (Msr::IA32_KERNEL_GS_BASE);
+    host_msr_area->ia32_star.msr_data = Msr::read<uint64>(Msr::IA32_STAR);
+    host_msr_area->ia32_lstar.msr_data = Msr::read<uint64>(Msr::IA32_LSTAR);
+    host_msr_area->ia32_cstar.msr_data = Msr::read<uint64>(Msr::IA32_CSTAR);
+    host_msr_area->ia32_sfmask.msr_data = Msr::read<uint64>(Msr::IA32_SFMASK);
+    host_msr_area->ia32_kernel_gs_base.msr_data = Msr::read<uint64>(Msr::IA32_KERNEL_GS_BASE);
 
     if (mtd & Mtd::SYSCALL_SWAPGS) {
         mword guest_msr_area_phys = Vmcs::read(Vmcs::EXI_MSR_ST_ADDR);
@@ -617,8 +615,7 @@ bool Utcb::load_svm (Cpu_regs *regs)
 
     exit_value = regs->dst_portal;
 
-    asm volatile ("" : : : "memory");
-
+    barrier();
     mtd = m;
     items = sizeof (Utcb_data) / sizeof (mword);
 

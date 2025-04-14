@@ -85,7 +85,7 @@ void Pci::enable_msi(unsigned const rid)
         uint16 msi_val = pci->readx(uint16(cap + 2));
         bool   const msi64   = msi_val & 0x80;
 
-        pci->writex(cap + 0x4, uint32(0xfee00000) | uint32(Lapic::id[0]) << 12);
+        pci->writex(cap + 0x4, uint32(0xfee00000) | uint32(Cpu::apic_id[0]) << 12);
         if (msi64) {
             pci->writex(cap + 0x8, uint32(0));
             pci->writex(cap + 0xc, short(VEC_MSI_DMAR));

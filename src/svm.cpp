@@ -35,7 +35,7 @@ struct Msr_bitmap
     uint8 range2[2048];
     uint8 range3[2048]; /* reserved & unused */
 
-    void disable_msr_exit(Msr::Reg64 const msr)
+    void disable_msr_exit(Msr::Register const msr)
     {
         auto const valid_range = msr & 0x1ffffu;
         auto const bit         = 2 * (valid_range % 4);
@@ -85,9 +85,9 @@ Vmcb::Vmcb (Quota &quota, mword bmp, mword nptp, unsigned id) : base_io (bmp), a
 
     base_msr = Buddy::ptr_to_phys(&msr_bitmap);
 
-    msr_bitmap.disable_msr_exit(Msr::Reg64::IA32_FS_BASE);
-    msr_bitmap.disable_msr_exit(Msr::Reg64::IA32_GS_BASE);
-    msr_bitmap.disable_msr_exit(Msr::Reg64::IA32_KERNEL_GS_BASE);
+    msr_bitmap.disable_msr_exit(Msr::Register::IA32_FS_BASE);
+    msr_bitmap.disable_msr_exit(Msr::Register::IA32_GS_BASE);
+    msr_bitmap.disable_msr_exit(Msr::Register::IA32_KERNEL_GS_BASE);
 }
 
 void Vmcb::destroy(Vmcb &obj, Quota &quota)
@@ -102,7 +102,7 @@ void Vmcb::destroy(Vmcb &obj, Quota &quota)
 
 void Vmcb::init()
 {
-    if (!Cpu::feature (Cpu::FEAT_SVM) || (Msr::read (Msr::AMD_SVM_VM_CR) & 0x10)) {
+    if (!Cpu::feature (Cpu::FEAT_SVM) || (Msr::read<uint64>(Msr::AMD_SVM_VM_CR) & 0x10)) {
         Hip::clr_feature (Hip::FEAT_SVM);
         return;
     }
@@ -110,7 +110,7 @@ void Vmcb::init()
     if (Cmdline::vtlb)
         svm_feature &= ~1;
 
-    Msr::write (Msr::IA32_EFER, Msr::read (Msr::IA32_EFER) | Cpu::EFER_SVME);
+    Msr::write (Msr::IA32_EFER, Msr::read<uint32>(Msr::IA32_EFER) | Cpu::EFER_SVME);
     if (!root)
         root = Buddy::ptr_to_phys (new (Pd::kern.quota) Vmcb(Space_mem::NO_ASID_ID));
     Msr::write (Msr::AMD_SVM_HSAVE_PA, root);

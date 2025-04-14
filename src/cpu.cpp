@@ -6,8 +6,7 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
- * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
- * Copyright (C) 2015-2024 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -31,20 +30,26 @@
 #include "mca.hpp"
 #include "msr.hpp"
 #include "pd.hpp"
-#include "signature.hpp"
 #include "stdio.hpp"
 #include "svm.hpp"
 #include "tss.hpp"
 #include "vmx.hpp"
 
+char const * const Cpu::vendor_string[] =
+{
+    "Unknown",
+    "GenuineIntel",
+    "AuthenticAMD"
+};
+
 mword       Cpu::boot_lock;
 
 // Order of these matters
 unsigned    Cpu::online;
-uint32      Cpu::acpi_id[NUM_CPU];
-bool        Cpu::apic_x2[NUM_CPU];
+uint8       Cpu::acpi_id[NUM_CPU];
+uint8       Cpu::apic_id[NUM_CPU];
 
-cpu_t       Cpu::id;
+unsigned    Cpu::id;
 unsigned    Cpu::hazard;
 uint8       Cpu::package[NUM_CPU];
 uint8       Cpu::core[NUM_CPU];
@@ -60,33 +65,13 @@ unsigned    Cpu::brand;
 unsigned    Cpu::patch[NUM_CPU];
 unsigned    Cpu::row;
 
+uint32      Cpu::name[12];
 uint32      Cpu::features[11];
 bool        Cpu::bsp;
 bool        Cpu::preemption;
 unsigned    Cpu::mwait_hint;
-apic_t      Cpu::topology;
 
-void Cpu::enumerate_topology (uint32_t leaf, uint32_t &topology, uint32_t (&lvl)[4])
-{
-    uint32_t eax, ebx, ecx, edx;
-
-    for (unsigned i { 0 }, s { 0 }, b; i < sizeof (lvl) / sizeof (*lvl); i++, s = b) {
-
-        cpuid (leaf, i, eax, ebx, ecx, edx);
-
-        if (ebx) [[likely]] {
-            lvl[i] = ((topology = edx) & ~(~0U << (b = eax & BIT_RANGE (4, 0)))) >> s;
-            continue;
-        }
-
-        if (i) [[likely]]
-            lvl[i] = topology >> s;
-
-        break;
-    }
-}
-
-void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32_t (&name)[12])
+void Cpu::check_features()
 {
     unsigned top = 0, tpp = 1, cpp = 1;
 
@@ -94,25 +79,22 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
 
     cpuid (0, eax, ebx, ecx, edx);
 
-    size_t v { sizeof (vendor_string) / sizeof (*vendor_string) };
-    while (--v)
-        if (Signature::u32 (vendor_string[v] + 0) == ebx && Signature::u32 (vendor_string[v] + 4) == edx && Signature::u32 (vendor_string[v] + 8) == ecx)
+    size_t v;
+    for (v = sizeof (vendor_string) / sizeof (*vendor_string); --v;)
+        if (*reinterpret_cast<uint32 const *>(vendor_string[v] + 0) == ebx &&
+            *reinterpret_cast<uint32 const *>(vendor_string[v] + 4) == edx &&
+            *reinterpret_cast<uint32 const *>(vendor_string[v] + 8) == ecx)
             break;
 
     vendor = Vendor (v);
 
-    if (vendor == Vendor::INTEL) {
-        Msr::write (Msr::IA32_BIOS_SIGN_ID, 0);
-        platform[Cpu::id] = static_cast<unsigned>(Msr::read (Msr::IA32_PLATFORM_ID) >> 50) & 7;
+    if (vendor == INTEL) {
+        Msr::write<uint64>(Msr::IA32_BIOS_SIGN_ID, 0);
+        platform[Cpu::id] = static_cast<unsigned>(Msr::read<uint64>(Msr::IA32_PLATFORM_ID) >> 50) & 7;
     }
 
-    topology = invalid_topology;
-
     switch (static_cast<uint8>(eax)) {
-        case 0x1f ... 0xff:
-            enumerate_topology (0x1f, topology, lvl);
-            [[fallthrough]];
-        case 0x1a ... 0x1e:
+        case 0x1a ... 0xff:
             eax = ebx = ecx = edx = 0;
             cpuid (0x1a, 0, eax, ebx, ecx, edx);
             core_type[Cpu::id] = uint8((eax >> 24) & 0xffu);
@@ -129,11 +111,7 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
             Fpu::compact = !!(Cpu::feature (Cpu::FEAT_FPU_COMPACT));
 
             [[fallthrough]];
-        case 0xb ... 0xc:
-            if (topology == invalid_topology)
-                enumerate_topology (0xb, topology, lvl);
-            [[fallthrough]];
-        case 0x7 ... 0xa:
+        case 0x7 ... 0xc:
             eax = ebx = ecx = edx = 0;
             cpuid (0x7, 0, eax, features[3], ecx, edx);
             /* hybrid flag (edx & (1u << 15)) */
@@ -160,23 +138,9 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
             brand    =  ebx & 0xff;
             top      =  ebx >> 24;
             tpp      =  ebx >> 16 & 0xff;
-
-            if (topology == invalid_topology) {
-                topology = ebx >> 24;
-                auto const tpp_ { feature (FEAT_HTT) ? ebx >> 16 & BIT_RANGE (7, 0) : 1 };
-                auto const tpc { tpp_ / cpp };
-                auto const c { bit_scan_msb (cpp - 1) + 1 };
-                auto const t { bit_scan_msb (tpc - 1) + 1 };
-                lvl[2] = topology >> (c + t);
-                lvl[1] = topology >> t & ~(~0U << c);
-                lvl[0] = topology      & ~(~0U << t);
-            }
-
-            Lapic::x2apic = Cpu::apic_x2[Cpu::id] &&
-                            features[1] & BIT (21);
     }
 
-    patch[Cpu::id] = static_cast<unsigned>(Msr::read (Msr::IA32_BIOS_SIGN_ID) >> 32);
+    patch[Cpu::id] = static_cast<unsigned>(Msr::read<uint64>(Msr::IA32_BIOS_SIGN_ID) >> 32);
 
     eax = ebx = ecx = edx = 0;
     cpuid (0x80000000, eax, ebx, ecx, edx);
@@ -186,7 +150,7 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
     if (eax & 0x80000000) {
         switch (static_cast<uint8>(eax)) {
             case 0x1e ... 0xff:
-                if (vendor == Vendor::AMD && family[Cpu::id] >= 0x17) {
+                if (vendor == AMD && family[Cpu::id] >= 0x17) {
                     eax = ebx = ecx = edx = 0;
                     cpuid (0x8000001e, eax, ebx, ecx, edx);
                     smt = ((ebx >> 8) & 0xff) + 1;
@@ -201,7 +165,7 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
 
                 [[fallthrough]];
             case 0x8 ... 0x9:
-                if (vendor == Vendor::AMD && smt) {
+                if (vendor == AMD && smt) {
                     eax = ebx = ecx = edx = 0;
                     cpuid (0x80000008, eax, ebx, tpp, edx);
                     if ((tpp >> 12) & 0xf)
@@ -233,7 +197,7 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
                 cpuid (0x80000001, eax, ebx, features[5], features[4]);
         }
 
-        if (vendor == Vendor::AMD && smt)
+        if (vendor == AMD && smt)
             defeature (FEAT_CMP_LEGACY);
     }
 
@@ -249,18 +213,18 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
     package[Cpu::id] = (top >> (t_bits + c_bits)) & 0xff;
 
     // Disable C1E on AMD Rev.F and beyond because it stops LAPIC clock
-    if (vendor == Vendor::AMD)
+    if (vendor == AMD)
         if (family[Cpu::id] == 0x10 || (family[Cpu::id] == 0xf && model[Cpu::id] >= 0x40))
-            Msr::write (Msr::AMD_IPMR, Msr::read (Msr::AMD_IPMR) & ~(3ul << 27));
+            Msr::write (Msr::AMD_IPMR, Msr::read<uint32>(Msr::AMD_IPMR) & ~(3ul << 27));
 
     // enable PAT if available
     eax = ebx = ecx = edx = 0;
     cpuid (0x1, eax, ebx, ecx, edx);
     if (edx & (1 << 16)) {
-        uint32 cr_pat = Msr::read (Msr::IA32_CR_PAT) & 0xffff00ff;
+        uint32 cr_pat = Msr::read<uint32>(Msr::IA32_CR_PAT) & 0xffff00ff;
 
         cr_pat |= 1 << 8;
-        Msr::write (Msr::IA32_CR_PAT, cr_pat);
+        Msr::write<uint32>(Msr::IA32_CR_PAT, cr_pat);
     } else
         trace (0, "warning: no PAT support");
 }
@@ -273,13 +237,13 @@ void Cpu::setup_thermal()
 void Cpu::setup_sysenter()
 {
 #ifdef __i386__
-    Msr::write (Msr::IA32_SYSENTER_CS,  SEL_KERN_CODE);
-    Msr::write (Msr::IA32_SYSENTER_ESP, reinterpret_cast<mword>(&Tss::run.sp0));
-    Msr::write (Msr::IA32_SYSENTER_EIP, reinterpret_cast<mword>(&entry_sysenter));
+    Msr::write<mword>(Msr::IA32_SYSENTER_CS,  SEL_KERN_CODE);
+    Msr::write<mword>(Msr::IA32_SYSENTER_ESP, reinterpret_cast<mword>(&Tss::run.sp0));
+    Msr::write<mword>(Msr::IA32_SYSENTER_EIP, reinterpret_cast<mword>(&entry_sysenter));
 #else
-    Msr::write (Msr::IA32_STAR,  static_cast<mword>(SEL_USER_CODE) << 48 | static_cast<mword>(SEL_KERN_CODE) << 32);
-    Msr::write (Msr::IA32_LSTAR, reinterpret_cast<mword>(&entry_sysenter));
-    Msr::write (Msr::IA32_SFMASK, Cpu::EFL_DF | Cpu::EFL_IF | Cpu::EFL_NT | Cpu::EFL_TF);
+    Msr::write<mword>(Msr::IA32_STAR,  static_cast<mword>(SEL_USER_CODE) << 48 | static_cast<mword>(SEL_KERN_CODE) << 32);
+    Msr::write<mword>(Msr::IA32_LSTAR, reinterpret_cast<mword>(&entry_sysenter));
+    Msr::write<mword>(Msr::IA32_SFMASK, Cpu::EFL_DF | Cpu::EFL_IF | Cpu::EFL_NT | Cpu::EFL_TF);
 #endif
 }
 
@@ -335,9 +299,7 @@ void Cpu::init(bool resume)
     static_assert (HV_GLOBAL_MAX / PAGE_SIZE >= NUM_CPU, "Too many CPUs configured");
 
     // Initialize CPU number and check features
-    uint32_t clk { 0 }, rat { 0 }, lvl[4] { 0 }, name[12] { 0 };
-
-    enumerate_features (clk, rat, lvl, name);
+    check_features();
 
     Lapic::init(Cpu::feature(Cpu::Feature::FEAT_TSC_INVARIANT));
 
@@ -393,7 +355,7 @@ void Cpu::init(bool resume)
         Cpu::defeature (Cpu::FEAT_MWAIT_IRQ);
     }
 
-    trace (TRACE_CPU, "CORE:%02x:%02x:%x %x:%x:%x:%x [%x] %s%.48s %s%s%s%s%s",
+    trace (TRACE_CPU, "CORE:%02x:%02x:%x %x:%x:%x:%x [%x] %s%.48s %s%s%s%s",
            package[Cpu::id], core[Cpu::id], thread[Cpu::id], family[Cpu::id],
            model[Cpu::id], stepping[Cpu::id], platform[Cpu::id], patch[Cpu::id],
            core_type[Cpu::id] == 0x00 ? ""   :
@@ -403,14 +365,13 @@ void Cpu::init(bool resume)
            Cpu::feature (Cpu::FEAT_MONITOR_MWAIT) ? "MWAIT" : "HLT",
            Cpu::feature (Cpu::FEAT_MWAIT_EXT) ? "+E" : "",
            Cpu::feature (Cpu::FEAT_MWAIT_IRQ) ? "+I" : "",
-           cr4 & Cpu::CR4_OSXSAVE ? " XS" : "",
-           Lapic::x2apic ? " X2" : "");
+           cr4 & Cpu::CR4_OSXSAVE ? " X" : "");
 
     if (!resume)
         Hip::add_cpu();
 
     if (Cpu::feature (Cpu::FEAT_RDTSCP))
-        Msr::write (Msr::IA32_TSC_AUX, Cpu::id);
+        Msr::write<uint64>(Msr::IA32_TSC_AUX, Cpu::id);
 
     Cpu::mwait_hint = ~0U; /* invalid */
 

@@ -266,7 +266,7 @@ class Dmar : public Iommu::Interface, public List<Dmar>
         ALWAYS_INLINE
         inline void init()
         {
-            write<uint32>(REG_FEADDR, 0xfee00000 | Lapic::id[0] << 12);
+            write<uint32>(REG_FEADDR, 0xfee00000 | Cpu::apic_id[0] << 12);
             write<uint32>(REG_FEDATA, VEC_MSI_DMAR);
             write<uint32>(REG_FECTL,  0);
 

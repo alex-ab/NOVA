@@ -237,12 +237,12 @@ void Hip::add_cpu()
         auto & cpu = hip.cpu_desc[Cpu::id];
 
         /* XXX */
-        cpu.acpi_id  = uint8_t(Cpu::acpi_id[Cpu::id]);
+        cpu.acpi_id  = Cpu::acpi_id[Cpu::id];
         cpu.package  = Cpu::package[Cpu::id];
         cpu.core     = Cpu::core[Cpu::id];
         cpu.thread   = Cpu::thread[Cpu::id];
         cpu.flags    = 1u | ((Cpu::core_type[Cpu::id] == Cpu::INTEL_CORE) ? 2u :
-                          (Cpu::core_type[Cpu::id] == Cpu::INTEL_ATOM) ? 4u : 0u);
+                             (Cpu::core_type[Cpu::id] == Cpu::INTEL_ATOM) ? 4u : 0u);
         cpu.family   = Cpu::family[Cpu::id];
         cpu.model    = Cpu::model[Cpu::id];
         cpu.stepping = Cpu::stepping[Cpu::id] & 0xf;

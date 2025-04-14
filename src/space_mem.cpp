@@ -154,7 +154,7 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
 
 void Space_mem::shootdown(Pd * local)
 {
-    for (cpu_t cpu = 0; cpu < NUM_CPU; cpu++) {
+    for (unsigned cpu = 0; cpu < NUM_CPU; cpu++) {
 
         if (!Hip::cpu_online (cpu))
             continue;
@@ -174,7 +174,7 @@ void Space_mem::shootdown(Pd * local)
 
         unsigned ctr = Counter::remote (cpu, 1);
 
-        Lapic::send_cpu (VEC_IPI_RKE, cpu);
+        Lapic::send_ipi (cpu, VEC_IPI_RKE);
 
         if (!Cpu::preemption)
             asm volatile ("sti" : : : "memory");

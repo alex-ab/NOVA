@@ -35,25 +35,8 @@
 
 static inline unsigned apic_id()
 {
-    uint32_t leaf {}, id_apic {}, unused {};
-
-    Cpu::cpuid (0, leaf, unused, unused, unused);
-
-    auto try_leaf = [](auto const id, auto &apic_edx) {
-        uint32_t leaf_ecx { 0 }, cpus_ebx {}, unused_eax {};
-
-        Cpu::cpuid (id, unused_eax, cpus_ebx, leaf_ecx, apic_edx);
-
-        return !!cpus_ebx;
-    };
-
-    if (leaf >= 0x1f && try_leaf(0x1f, id_apic)) return id_apic;
-    if (leaf >= 0x0b && try_leaf(0x0b, id_apic)) return id_apic;
-
-    uint32_t ebx { };
-
+    uint32 ebx, unused;
     Cpu::cpuid (1, unused, ebx, unused, unused);
-
     return ebx >> 24;
 }
 
@@ -62,7 +45,7 @@ mword kern_ptab_setup()
 {
     static Paddr cr3[NUM_CPU];
 
-    auto const cpuid = Lapic::lookup (apic_id());
+    auto const cpuid = Cpu::find_by_apic_id (apic_id());
 
     if (cpuid < NUM_CPU && cr3[cpuid]) {
         if (cpuid == 0) {
