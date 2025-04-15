@@ -504,7 +504,7 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         NORETURN
         static void xcpu_return();
 
-        void xcpu_revert(void (*)() = nullptr);
+        Sm * xcpu_revert();
 
         void xcpu_clone(Ec &, uint16);
 

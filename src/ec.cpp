@@ -177,7 +177,10 @@ Ec::~Ec()
         /* should never happen, Ec have to pass xcpu_return */
         trace (0, "invalid state, still have xcpu_sm");
 
-        xcpu_revert();
+        auto sm = xcpu_revert();
+
+        if (sm)
+            sm->up();
     }
 
     pre_free(this);
@@ -593,15 +596,26 @@ void Ec::xcpu_return()
     assert (current->utcb);
     assert (Sc::current->ec == current);
 
-    current->xcpu_revert(ret_xcpu_reply);
+    auto sm = current->xcpu_revert();
 
-    /* if last ref it will be handled by schedule(true) */
+    /* if last ref it will be handled by schedule_wo_activate */
     Sc::current->del_rcu();
 
-    Sc::schedule(true);
+    auto old = Sc::current;
+    auto cur = Sc::schedule_wo_activate (true, true);
+
+    /* keep track of time spent on this (remote) CPU */
+    Atomic::add(Sc::cross_time[old->cpu], old->time);
+    old->time = 0;
+
+    /* wake original caller of remote CPU */
+    if (sm)
+        sm->up (ret_xcpu_reply);
+
+    cur->ec->activate();
 }
 
-void Ec::xcpu_revert(void (*sm_cont)())
+Sm * Ec::xcpu_revert()
 {
     if (rcap) {
         *rcap->exc_regs() = regs;
@@ -617,7 +631,7 @@ void Ec::xcpu_revert(void (*sm_cont)())
     xcpu_sm = nullptr;
     cont    = dead;
 
-    sm->up (sm_cont);
+    return sm;
 }
 
 void Ec::idl_handler()

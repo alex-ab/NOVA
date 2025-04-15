@@ -117,7 +117,7 @@ void Sc::ready_dequeue (uint64 t)
     tsc = t;
 }
 
-void Sc::schedule (bool suspend, bool use_left)
+Sc * Sc::schedule_wo_activate (bool suspend, bool use_left)
 {
     do {
         Counter::print<1,16> (++Counter::schedule, Console_vga::COLOR_LIGHT_CYAN, SPN_SCH);
@@ -153,7 +153,13 @@ void Sc::schedule (bool suspend, bool use_left)
         current->ready_dequeue (t);
     } while (EXPECT_FALSE(current->disable) && current->ec == Ec::current);
 
-    current->ec->activate();
+    return current;
+}
+
+void Sc::schedule (bool suspend, bool use_left)
+{
+    auto cur = schedule_wo_activate (suspend, use_left);
+    cur->ec->activate();
 }
 
 void Sc::remote_enqueue(bool inc_ref)

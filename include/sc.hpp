@@ -93,6 +93,8 @@ class Sc : public Kobject, public Refcount
         static void rrq_handler();
         static void rke_handler();
 
+        static Sc * schedule_wo_activate (bool, bool);
+
         NORETURN
         static void schedule (bool = false, bool = true);
 
