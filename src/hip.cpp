@@ -134,21 +134,18 @@ void Hip::build_mbi2(Hip_guard &hg, mword const addr)
         if (tag->type == Multiboot2::TAG_ACPI_2)
             Acpi_rsdp::parse(tag->rsdp());
 
-        if (tag->type == Multiboot2::TAG_FB)
-            Hip::add_fb(hg, tag->framebuffer());
-    });
-}
-
-void Hip::add_fb(Hip_guard &hg, auto const *fb)
-{
-    hg.with_mem_desc([&](auto &mem) {
-        mem.addr  = fb->addr;
-        mem.size  = static_cast<uint64>(fb->width) << 40;
-        mem.size |= static_cast<uint64>(fb->height & ((1U << 24) - 1)) << 16;
-        mem.size |= (fb->type & 0xffu) << 8;
-        mem.size |= fb->bpp & 0xffu;
-        mem.aux   = fb->pitch;
-        mem.type  = Hip_mem::MB2_FB;
+        if (tag->type == Multiboot2::TAG_FB) {
+            auto fb = tag->framebuffer();
+            hg.with_mem_desc([&](auto &mem) {
+                mem.addr  = fb->addr;
+                mem.size  = static_cast<uint64>(fb->width) << 40;
+                mem.size |= static_cast<uint64>(fb->height & ((1U << 24) - 1)) << 16;
+                mem.size |= (fb->type & 0xffu) << 8;
+                mem.size |= fb->bpp & 0xffu;
+                mem.aux   = fb->pitch;
+                mem.type  = Hip_mem::MB2_FB;
+            });
+        }
     });
 }
 

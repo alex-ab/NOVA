@@ -148,9 +148,6 @@ class Hip
         static void build_mbi2 (Hip_guard &, mword);
         
         INIT
-        static void add_fb (Hip_guard &, auto const *);
-
-        INIT
         static void add_systab (Hip_guard &, auto const *);
 
         INIT
