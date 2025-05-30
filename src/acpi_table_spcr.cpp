@@ -20,7 +20,7 @@
 
 void Acpi_table_spcr::parse() const
 {
-    trace (TRACE_FIRM, "SPCR: Console %04x:%04x (%u:%#lx:%u:%u)", std::to_underlying (Debug::Type::SERIAL), uint16_t { subtype }, std::to_underlying (regs.asid), uint64_t { regs.addr }, uint8_t { regs.bits }, uint8_t { regs.accs });
+    trace (TRACE_FIRM, "SPCR: Console %04x:%04x (%u:%#llx:%u:%u)", std::to_underlying (Debug::Type::SERIAL), uint16_t { subtype }, std::to_underlying (regs.asid), uint64_t { regs.addr }, uint8_t { regs.bits }, uint8_t { regs.accs });
 
     Console::bind (Debug::Type::SERIAL, Debug::Subtype { uint16_t { subtype } }, regs);
 }

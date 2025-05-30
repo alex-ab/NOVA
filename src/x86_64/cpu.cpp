@@ -352,7 +352,7 @@ void Cpu::setup_cst()
     // Disable timed MWAIT and ACC
     Msr::write (Msr::Reg64::CST_CONFIG, cfg);
 
-    trace (TRACE_CPU, "CCST:%s%s%s%s%s%s%s (%#lx:%#lx)",
+    trace (TRACE_CPU, "CCST:%s%s%s%s%s%s%s (%#llx:%#llx)",
            supports (Cstate::C10) ? " C10" : "", supports (Cstate::C9) ? " C9"  : "", supports (Cstate::C8) ? " C8"  : "",
            supports (Cstate::C7)  ? " C7"  : "", supports (Cstate::C6) ? " C6"  : "", supports (Cstate::C3) ? " C3"  : "",
            supports (Cstate::C1)  ? " C1"  : "", ctl, cfg);

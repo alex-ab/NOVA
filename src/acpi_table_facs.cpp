@@ -23,5 +23,5 @@ void Acpi_table_facs::parse() const
     if (header.length < sizeof (*this)) [[unlikely]]
         return;
 
-    trace (TRACE_FIRM, "FACS: Hardware %#x Flags %#x Wake %#x/%#lx", uint32_t { hardware }, uint32_t { flags }, uint32_t { wake32 }, uint64_t { wake64 });
+    trace (TRACE_FIRM, "FACS: Hardware %#x Flags %#x Wake %#x/%#llx", uint32_t { hardware }, uint32_t { flags }, uint32_t { wake32 }, uint64_t { wake64 });
 }

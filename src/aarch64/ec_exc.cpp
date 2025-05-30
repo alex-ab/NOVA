@@ -43,7 +43,7 @@ void Ec_arch::handle_exc_kern (Exc_regs *r)
 {
     auto const iss { r->el2.esr & BIT_RANGE (24, 0) };
 
-    panic ("Kernel exception %#lx (%#lx) at IP:%#lx FAR:%#lx", r->ep(), iss, r->el2.elr, r->el2.far);
+    panic ("Kernel exception %#llx (%#llx) at IP:%#llx FAR:%#llx", r->ep(), iss, r->el2.elr, r->el2.far);
 }
 
 void Ec_arch::handle_exc_user (Exc_regs *r)
@@ -66,7 +66,7 @@ void Ec_arch::handle_exc_user (Exc_regs *r)
     else if (r->ep() == 0x7)
         resolved = switch_fpu (self);
 
-    trace (TRACE_EXCEPTION, "EC:%p %s %#lx at M:%#x IP:%#lx", static_cast<void *>(self), self->is_vcpu() ? "VMX" : "EXC", r->ep(), r->mode(), r->el2.elr);
+    trace (TRACE_EXCEPTION, "EC:%p %s %#llx at M:%#x IP:%#llx", static_cast<void *>(self), self->is_vcpu() ? "VMX" : "EXC", r->ep(), r->mode(), r->el2.elr);
 
     if (self->is_vcpu()) {
         self->regs.vmcb->save_gst();
