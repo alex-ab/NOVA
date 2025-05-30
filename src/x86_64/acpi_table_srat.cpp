@@ -38,7 +38,7 @@ void Acpi_table_srat::Affinity_memory::parse() const
     if (!(flags & BIT (0))) [[unlikely]]
         return;
 
-    trace (TRACE_FIRM, "SRAT: %#018lx-%018lx Dom %u", uint64_t { base }, base + size, uint32_t { pxd });
+    trace (TRACE_FIRM, "SRAT: %#018llx-%018llx Dom %u", uint64_t { base }, base + size, uint32_t { pxd });
 }
 
 void Acpi_table_srat::parse() const

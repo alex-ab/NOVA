@@ -29,5 +29,5 @@ void Acpi_table_hpet::parse() const
     if (!hpet) [[unlikely]]
         panic ("HPET allocation failed");
 
-    trace (TRACE_FIRM, "HPET: %#010lx", uint64_t { regs.addr });
+    trace (TRACE_FIRM, "HPET: %#010llx", uint64_t { regs.addr });
 }

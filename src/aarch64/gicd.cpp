@@ -71,7 +71,7 @@ bool Gicd::mmap_mmio()
                     Interrupt::num_lpi = min (NUM_LPI, l ? BIT (l + 1) : Intid::to_lpi (BIT (ord_iid)));
             }
 
-            trace (TRACE_INTR, "GICD: %#010lx %03x:%03x r%up%u v%u ESPI:%u SPI:%u LPI:%u IID:%u S:%u G:%u",
+            trace (TRACE_INTR, "GICD: %#010llx %03x:%03x r%up%u v%u ESPI:%u SPI:%u LPI:%u IID:%u S:%u G:%u",
                    phys, iidr & BIT_RANGE (11, 0), iidr >> 24, iidr >> 16 & BIT_RANGE (3, 0), iidr >> 12 & BIT_RANGE (3, 0),
                    arch, Interrupt::num_espi, Interrupt::num_spi, Interrupt::num_lpi, ord_iid, !!(typer & BIT (10)), group & BIT (0));
 

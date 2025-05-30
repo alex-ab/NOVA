@@ -26,7 +26,7 @@ void Acpi_table_lpit::Descriptor_native::parse() const
     if (flags & BIT (0))
         return;
 
-    trace (TRACE_FIRM | TRACE_PARSE, "LPIT: Trigger:%#x/%#lx+%u/%u Counter:%#x/%#lx+%u/%u Residency:%uus Latency:%uus",
+    trace (TRACE_FIRM | TRACE_PARSE, "LPIT: Trigger:%#x/%#llx+%u/%u Counter:%#x/%#llx+%u/%u Residency:%uus Latency:%uus",
            static_cast<uint8_t>(trigger.asid), uint64_t { trigger.addr }, uint8_t { trigger.offs }, uint8_t { trigger.bits },
            static_cast<uint8_t>(counter.asid), uint64_t { counter.addr }, uint8_t { counter.offs }, uint8_t { counter.bits },
            uint32_t { min_residency }, uint32_t { max_latency });

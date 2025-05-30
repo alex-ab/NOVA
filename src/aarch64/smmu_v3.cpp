@@ -202,7 +202,7 @@ void Smmu_v3::handle_evt (uint32_t const hwi)
                 break;
 
             case Evt::Type::F_TRANSLATION:
-                trace (TRACE_ERROR, "SMMU: %#lx F_TRANSLATION SID:%#x IADDR:%#lx", phys, evt.sid(), evt.iaddr());
+                trace (TRACE_ERROR, "SMMU: %#lx F_TRANSLATION SID:%#x IADDR:%#llx", phys, evt.sid(), evt.iaddr());
                 break;
 
             default:

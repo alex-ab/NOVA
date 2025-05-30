@@ -20,7 +20,7 @@
 
 size_t Acpi_table_hest::Source_ghes_1::parse() const
 {
-    trace (TRACE_FIRM, "HEST: SRC:%04x REL:%04x Enabled:%u Addr:%#lx/%u Rec:%u Sec:%u Raw:%u Notify:%u", uint16_t { src_id }, uint16_t { rel_id }, uint8_t { enabled }, uint64_t { status.addr }, uint32_t { length }, uint32_t { rec }, uint32_t { sec }, uint32_t { raw }, std::to_underlying (notify.type()));
+    trace (TRACE_FIRM, "HEST: SRC:%04x REL:%04x Enabled:%u Addr:%#llx/%u Rec:%u Sec:%u Raw:%u Notify:%u", uint16_t { src_id }, uint16_t { rel_id }, uint8_t { enabled }, uint64_t { status.addr }, uint32_t { length }, uint32_t { rec }, uint32_t { sec }, uint32_t { raw }, std::to_underlying (notify.type()));
 
     return sizeof (*this);
 }

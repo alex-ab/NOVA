@@ -45,7 +45,7 @@ void Acpi_table_dmar::Remapping_drhd::parse() const
         auto const s { reinterpret_cast<Scope const *>(ptr) };      // Scope
         auto const t { Pci::pci (segment, s->b, s->d, s->f) };      // Topology
 
-        trace (TRACE_FIRM | TRACE_PARSE, "SMMU: %#lx Scope Type %u Device %04x:%02x:%02x.%x", uint64_t { phys }, std::to_underlying (s->type()), Pci::seg (t), Pci::bus (t), Pci::dev (t), Pci::fun (t));
+        trace (TRACE_FIRM | TRACE_PARSE, "SMMU: %#llx Scope Type %u Device %04x:%02x:%02x.%x", uint64_t { phys }, std::to_underlying (s->type()), Pci::seg (t), Pci::bus (t), Pci::dev (t), Pci::fun (t));
 
         switch (s->type()) {
             case Scope::Type::PCI_EP:
@@ -72,7 +72,7 @@ void Acpi_table_dmar::Remapping_rmrr::parse() const
         auto const s { reinterpret_cast<Scope const *>(ptr) };      // Scope
         auto const t { Pci::pci (segment, s->b, s->d, s->f) };      // Topology
 
-        trace (TRACE_FIRM | TRACE_PARSE, "RMRR: %#010lx-%#010lx Scope Type %u Device %04x:%02x:%02x.%x", b, l, std::to_underlying (s->type()), Pci::seg (t), Pci::bus (t), Pci::dev (t), Pci::fun (t));
+        trace (TRACE_FIRM | TRACE_PARSE, "RMRR: %#010llx-%#010llx Scope Type %u Device %04x:%02x:%02x.%x", b, l, std::to_underlying (s->type()), Pci::seg (t), Pci::bus (t), Pci::dev (t), Pci::fun (t));
 
         Smmu *smmu { nullptr };
 

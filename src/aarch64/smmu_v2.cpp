@@ -159,7 +159,7 @@ void Smmu_v2::fault (unsigned)
 
         auto const syn { read (GR0_Reg32::GFSYNR0) };
 
-        trace (TRACE_SMMU, "SMMU: GLB Fault (M:%u UUT:%u P:%u E:%u CA:%u UCI:%u UCB:%u SMC:%u US:%u IC:%u) at %#010lx (%c%c%c) SID:%#x",
+        trace (TRACE_SMMU, "SMMU: GLB Fault (M:%u UUT:%u P:%u E:%u CA:%u UCI:%u UCB:%u SMC:%u US:%u IC:%u) at %#010llx (%c%c%c) SID:%#x",
                !!(gfsr & BIT (31)), !!(gfsr & BIT (8)), !!(gfsr & BIT (7)), !!(gfsr & BIT (6)), !!(gfsr & BIT (5)),
                !!(gfsr & BIT (4)),  !!(gfsr & BIT (3)), !!(gfsr & BIT (2)), !!(gfsr & BIT (1)), !!(gfsr & BIT (0)),
                read (GR0_Reg64::GFAR),
@@ -179,7 +179,7 @@ void Smmu_v2::fault (unsigned)
 
             auto const syn { read (ctx, Ctx_Arr32::FSYNR0) };
 
-            trace (TRACE_SMMU, "SMMU: C%02u Fault (M:%u SS:%u UUT:%u AS:%u LK:%u MC:%u E:%u P:%u A:%u T:%u) at %#010lx (%c%c%c) LVL:%u",
+            trace (TRACE_SMMU, "SMMU: C%02u Fault (M:%u SS:%u UUT:%u AS:%u LK:%u MC:%u E:%u P:%u A:%u T:%u) at %#010llx (%c%c%c) LVL:%u",
                    ctx, !!(fsr & BIT (31)), !!(fsr & BIT (30)),
                    !!(fsr & BIT (8)), !!(fsr & BIT (7)), !!(fsr & BIT (6)), !!(fsr & BIT (5)),
                    !!(fsr & BIT (4)), !!(fsr & BIT (3)), !!(fsr & BIT (2)), !!(fsr & BIT (1)),

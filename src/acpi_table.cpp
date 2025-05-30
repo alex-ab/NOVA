@@ -51,7 +51,7 @@ bool Acpi_table::validate (uint64_t phys) const
     // Checksum must be correct
     auto const valid { Checksum::additive (reinterpret_cast<uint8_t const *>(this), header.length) == 0 };
 
-    trace (TRACE_FIRM, "%4.4s: %#010lx OEM:%6.6s TBL:%8.8s REV:%2u LEN:%8u (%s)",
+    trace (TRACE_FIRM, "%4.4s: %#010llx OEM:%6.6s TBL:%8.8s REV:%2u LEN:%8u (%s)",
            reinterpret_cast<char const *>(&header.signature), phys, oem_id, oem_table_id,
            uint8_t { revision }, uint32_t { header.length }, valid ? "ok" : "bad");
 

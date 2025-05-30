@@ -20,5 +20,5 @@
 
 void Acpi_table_tpm2::parse() const
 {
-    trace (TRACE_FIRM, "TPM2: TPM at %#lx (%u)", uint64_t { tpm_base }, uint32_t { start_method });
+    trace (TRACE_FIRM, "TPM2: TPM at %#llx (%u)", uint64_t { tpm_base }, uint32_t { start_method });
 }
