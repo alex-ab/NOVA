@@ -156,7 +156,7 @@ void Smmu_amd::event (Evt const &e)
     switch (e.type()) {
 
         default:
-            trace (TRACE_SMMU, "SMMU: %#010lx EVT:%#x OP1:%#lx OP2:%#lx", phys, std::to_underlying (e.type()), e.eop1(), e.eop2());
+            trace (TRACE_SMMU, "SMMU: %#010lx EVT:%#x OP1:%#llx OP2:%#llx", phys, std::to_underlying (e.type()), e.eop1(), e.eop2());
             break;
 
         // CMDQ halts in these two cases, which facilitates replacing the bad command with a COMPLETION_WAIT

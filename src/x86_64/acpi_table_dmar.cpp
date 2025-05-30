@@ -53,7 +53,7 @@ bool Acpi_table_dmar::Remapping_drhd::parse() const
         if (l < sizeof (list_t) || (ptr += l) > end) [[unlikely]]
             break;
 
-        trace (TRACE_FIRM | TRACE_PARSE, "SMMU: %#lx Scope Type %u Device %04x:%02x:%02x.%x", uint64_t { phys }, std::to_underlying (s->type()), Pci::seg (t), Pci::bus (t), Pci::dev (t), Pci::fun (t));
+        trace (TRACE_FIRM | TRACE_PARSE, "SMMU: %#llx Scope Type %u Device %04x:%02x:%02x.%x", uint64_t { phys }, std::to_underlying (s->type()), Pci::seg (t), Pci::bus (t), Pci::dev (t), Pci::fun (t));
 
         switch (s->type()) {
             case Scope::Type::PCI_EP:

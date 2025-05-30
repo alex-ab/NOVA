@@ -36,7 +36,7 @@ bool Acpi_table_dbg2::parse() const
         if (l < sizeof (list_t) || (ptr += l) > end || reinterpret_cast<uintptr_t>(r + 1) > end) [[unlikely]]
             break;
 
-        trace (TRACE_FIRM, "DBG2: Console %04x:%04x (%u:%#lx:%u:%u)", uint16_t { s->type }, uint16_t { s->subtype }, std::to_underlying (r->asid), uint64_t { r->addr }, uint8_t { r->bits }, uint8_t { r->accs });
+        trace (TRACE_FIRM, "DBG2: Console %04x:%04x (%u:%#llx:%u:%u)", uint16_t { s->type }, uint16_t { s->subtype }, std::to_underlying (r->asid), uint64_t { r->addr }, uint8_t { r->bits }, uint8_t { r->accs });
 
         Console::bind (Debug::Type { uint16_t { s->type } }, Debug::Subtype { uint16_t { s->subtype } }, *r);
     }

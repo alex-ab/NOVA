@@ -195,7 +195,7 @@ void Smmu_itl::interrupt()
         uint128_t val;
         for (unsigned frr { fsts >> 8 & BIT_RANGE (7, 0) }; read_frr (frr, val); frr = (frr + 1) % nfr()) {
             auto const src { Pci::pci (Pci::seg (sbdf), static_cast<uint16_t>(val >> 64)) };
-            trace (TRACE_SMMU, "SMMU: %#010lx SRC:%04x:%02x:%02x.%x FR:%#04x FI:%#010lx", phys, Pci::seg (src), Pci::bus (src), Pci::dev (src), Pci::fun (src), static_cast<uint8_t>(val >> 96), static_cast<uint64_t>(val));
+            trace (TRACE_SMMU, "SMMU: %#010lx SRC:%04x:%02x:%02x.%x FR:%#04x FI:%#010llx", phys, Pci::seg (src), Pci::bus (src), Pci::dev (src), Pci::fun (src), static_cast<uint8_t>(val >> 96), static_cast<uint64_t>(val));
         }
     }
 
@@ -220,7 +220,7 @@ void Smmu_itl::interrupt()
         if (fsts & Fault::IQE) [[unlikely]] {
             Inv_iwt inv;
             invq_repair (inv);
-            trace (TRACE_SMMU, "SMMU: %#010lx Bad Invalidation %#x (%lu)", phys, std::to_underlying (inv.type()), error & BIT_RANGE (3, 0));
+            trace (TRACE_SMMU, "SMMU: %#010lx Bad Invalidation %#x (%llu)", phys, std::to_underlying (inv.type()), error & BIT_RANGE (3, 0));
         }
     }
 

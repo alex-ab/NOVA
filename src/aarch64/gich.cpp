@@ -57,7 +57,7 @@ void Gich::init_mmio()
     num_apr = min (max_apr, BIT ((vtr >> 26 & BIT_RANGE (2, 0)) + 1) >> 5);
     num_lr  = min (max_lr, (vtr & BIT_RANGE (5, 0)) + 1);
 
-    trace (TRACE_INTR, "GICH: %#010lx APR:%u LR:%u", phys, num_apr, num_lr);
+    trace (TRACE_INTR, "GICH: %#010llx APR:%u LR:%u", phys, num_apr, num_lr);
 }
 
 void Gich::init_regs()

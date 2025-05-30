@@ -84,12 +84,12 @@ void Hip::build (uint64_t root_s, uint64_t root_e)
     sel_gst_arch    = Event::gst_arch;
     sel_gst_nova    = Event::gst_max;
 
-    trace (TRACE_ROOT, "INFO: NOVA: %#018lx-%#018lx", nova_p_addr, nova_e_addr);
-    trace (TRACE_ROOT, "INFO: MBUF: %#018lx-%#018lx", mbuf_p_addr, mbuf_e_addr);
-    trace (TRACE_ROOT, "INFO: ROOT: %#018lx-%#018lx", root_p_addr, root_e_addr);
-    trace (TRACE_ROOT, "INFO: ACPI: %#lx", acpi_rsdp_addr);
-    trace (TRACE_ROOT, "INFO: UEFI: %#lx %u %u %u", uefi_mmap_addr, uefi_mmap_size, uefi_desc_size, uefi_desc_vers);
-    trace (TRACE_ROOT, "INFO: FREQ: %lu Hz", tmr_frq);
+    trace (TRACE_ROOT, "INFO: NOVA: %#018llx-%#018llx", nova_p_addr, nova_e_addr);
+    trace (TRACE_ROOT, "INFO: MBUF: %#018llx-%#018llx", mbuf_p_addr, mbuf_e_addr);
+    trace (TRACE_ROOT, "INFO: ROOT: %#018llx-%#018llx", root_p_addr, root_e_addr);
+    trace (TRACE_ROOT, "INFO: ACPI: %#llx", acpi_rsdp_addr);
+    trace (TRACE_ROOT, "INFO: UEFI: %#llx %u %u %u", uefi_mmap_addr, uefi_mmap_size, uefi_desc_size, uefi_desc_vers);
+    trace (TRACE_ROOT, "INFO: FREQ: %llu Hz", tmr_frq);
     trace (TRACE_ROOT, "INFO: SBW#: OBJ:%u HST:%u GST:%u DMA:%u PIO:%u MSR:%u", sbw_obj, sbw_hst, sbw_gst, sbw_dma, sbw_pio, sbw_msr);
     trace (TRACE_ROOT, "INFO: HST#: %3u + %u", sel_hst_arch, sel_hst_nova);
     trace (TRACE_ROOT, "INFO: GST#: %3u + %u", sel_gst_arch, sel_gst_nova);

@@ -30,7 +30,7 @@ bool Acpi_table_madt::Controller_gicd::parse() const
     if (len < sizeof (*this)) [[unlikely]]
         return false;
 
-    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICD:%#010lx", uint64_t { phys_gicd });
+    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICD:%#010llx", uint64_t { phys_gicd });
 
     Gicd::phys = phys_gicd;
 
@@ -43,7 +43,7 @@ bool Acpi_table_madt::Controller_gicr::parse() const
     if (len < sizeof (*this)) [[unlikely]]
         return false;
 
-    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICR:%#010lx (%#x)", uint64_t { phys_gicr }, uint32_t { size_gicr });
+    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICR:%#010llx (%#x)", uint64_t { phys_gicr }, uint32_t { size_gicr });
 
     // GICR is noncoherent
     if (flags & BIT (0)) [[unlikely]]

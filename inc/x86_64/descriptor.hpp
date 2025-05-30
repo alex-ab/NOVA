@@ -131,10 +131,10 @@ class Pseudo_descriptor final
 {
     private:
         Unaligned_le<uint16_t>      limit;
-        Unaligned_le<uintptr_t>     base;
+        Unaligned_le<uint64_t>      base;
 
     public:
-        explicit Pseudo_descriptor (void *b, size_t l) : limit { static_cast<uint16_t>(l - 1) }, base { reinterpret_cast<uintptr_t>(b) } {}
+        explicit Pseudo_descriptor (void *b, size_t l) : limit { static_cast<uint16_t>(l - 1) }, base { reinterpret_cast<uint64_t>(b) } {}
 };
 
 static_assert (__is_standard_layout (Pseudo_descriptor) && alignof (Pseudo_descriptor) == 1 && sizeof (Pseudo_descriptor) == 10);
