@@ -51,7 +51,7 @@ void Fpu::init()
         // Use largest context size reported by any CPU
         Fpu::size = max (Fpu::size, static_cast<size_t>(size));
 
-        trace (TRACE_FPU, "FPU%c: State:%#lx Size:%u", compact ? 'C' : 'S', hst_xsv.xcr | hst_xsv.xss, size);
+        trace (TRACE_FPU, "FPU%c: State:%#llx Size:%u", compact ? 'C' : 'S', hst_xsv.xcr | hst_xsv.xss, size);
     }
 }
 

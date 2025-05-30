@@ -265,7 +265,7 @@ void Cpu::init (cpu_t cpu)
             break;
     }
 
-    trace (TRACE_CPU, "CORE: %02lu:%02lu:%02lu:%02lu %s %s r%lup%lu PA:%u XNX:%u GIC:%u",
+    trace (TRACE_CPU, "CORE: %02llu:%02llu:%02llu:%02llu %s %s r%llup%llu PA:%u XNX:%u GIC:%u",
            mpidr >> 32 & BIT_RANGE (7, 0), mpidr >> 16 & BIT_RANGE (7, 0), mpidr >> 8 & BIT_RANGE (7, 0), mpidr & BIT_RANGE (7, 0),
            impl, part, midr >> 20 & BIT_RANGE (3, 0), midr & BIT_RANGE (3, 0),
            feature (Mem_feature::PARANGE), feature (Mem_feature::XNX), feature (Cpu_feature::GIC));

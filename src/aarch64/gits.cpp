@@ -128,7 +128,7 @@ bool Gits::init_baser (unsigned n)
         // Determine final BASER value and use read-only bits[58:56] to store the BASER number
         *baser = BIT64 (63) | BIT64 (62) * !!ord_1 | (coherent ? attr_isic : attr_nsnc) | uint64_t { n } << 56 | (val & BIT64_RANGE (52, 48)) | Kmem::ptr_to_phys (ptr) | size;
 
-        trace (TRACE_INTR, "GITS: %#010lx BASER%u:%#lx E:%lu I:%u O:%x%x%x S:%#lx", phys, n, *baser, e, i, ord_c, ord_1, ord_0, s);
+        trace (TRACE_INTR, "GITS: %#010lx BASER%u:%#llx E:%llu I:%u O:%x%x%x S:%#lx", phys, n, *baser, e, i, ord_c, ord_1, ord_0, s);
 
         return true;
     }
@@ -182,7 +182,7 @@ bool Gits::command (Cmd const &c)
     if (err) [[unlikely]] {
         Cmd e { Cmd_sync { rta (Cpu::id) } };
         cmdq.replace (e, coherent, hwi);
-        trace (TRACE_ERROR, "GITS: %#010lx Command failed %#lx %#lx %#lx %#lx", phys, uint64_t { e.w0 }, uint64_t { e.w1 }, uint64_t { e.w2 }, uint64_t { e.w3 });
+        trace (TRACE_ERROR, "GITS: %#010lx Command failed %#llx %#llx %#llx %#llx", phys, uint64_t { e.w0 }, uint64_t { e.w1 }, uint64_t { e.w2 }, uint64_t { e.w3 });
         return false;
     }
 
@@ -222,7 +222,7 @@ bool Gits::init()
         if (Cpu::count > num_hcc() && !init_table (baser_col, cpu)) [[unlikely]]
             return false;
 
-        trace (TRACE_INTR | TRACE_PARSE, "GITS: %#010lx MAPC CID:%u => RTA:%#lx", phys, cpu, rta (cpu));
+        trace (TRACE_INTR | TRACE_PARSE, "GITS: %#010lx MAPC CID:%u => RTA:%#llx", phys, cpu, rta (cpu));
 
         // Map CID => GICR and invalidate collection cache
         if (!command (Cmd_mapc { cpu, rta (cpu) }) || !command (Cmd_invall { cpu })) [[unlikely]]

@@ -33,7 +33,7 @@ bool Fdt::Header::parse (uint64_t phys) const
     if (magic != 0xd00dfeed)
         return false;
 
-    trace (TRACE_FIRM, "FDTB: %#010lx Version:%u Size:%#x BootCPU:%u", phys, uint32_t { fdt_version }, uint32_t { fdt_size }, uint32_t { boot_cpu });
+    trace (TRACE_FIRM, "FDTB: %#010llx Version:%u Size:%#x BootCPU:%u", phys, uint32_t { fdt_version }, uint32_t { fdt_size }, uint32_t { boot_cpu });
 
     fdtb = reinterpret_cast<decltype (fdtb)>(reinterpret_cast<uintptr_t>(this) + offs_structs);
     fdte = reinterpret_cast<decltype (fdte)>(reinterpret_cast<uintptr_t>(fdtb) + size_structs);
@@ -89,7 +89,7 @@ void Fdt::Header::parse_subtree (Unaligned_be<uint32_t> const *&w, unsigned pa_c
                         for (auto j { cc }; j--; cbus = (cbus << 32) | *v++) ;
                         for (auto j { pc }; j--; pbus = (pbus << 32) | *v++) ;
                         for (auto j { sc }; j--; size = (size << 32) | *v++) ;
-                        trace (TRACE_FIRM | TRACE_PARSE, "%*s%s = %#lx/%#lx/%#lx", l * indent, "", "ranges", cbus, pbus, size);
+                        trace (TRACE_FIRM | TRACE_PARSE, "%*s%s = %#llx/%#llx/%#llx", l * indent, "", "ranges", cbus, pbus, size);
                     }
                 }
 
@@ -102,7 +102,7 @@ void Fdt::Header::parse_subtree (Unaligned_be<uint32_t> const *&w, unsigned pa_c
                         uint64_t addr { 0 }, size { 0 };
                         for (auto j { ac }; j--; addr = (addr << 32) | *v++) ;
                         for (auto j { sc }; j--; size = (size << 32) | *v++) ;
-                        trace (TRACE_FIRM | TRACE_PARSE, "%*s%s = %#lx/%#lx", l * indent, "", "reg", addr, size);
+                        trace (TRACE_FIRM | TRACE_PARSE, "%*s%s = %#llx/%#llx", l * indent, "", "reg", addr, size);
                     }
                 }
 
@@ -140,7 +140,7 @@ void Fdt::Header::parse_subtree (Unaligned_be<uint32_t> const *&w, unsigned pa_c
                     } else if (!strcmp (s, "clock-frequency") || !strcmp (s, "timebase-frequency")) {
                         uint64_t val { 0 };
                         for (auto i { len / sizeof (uint32_t) }; i--; val = (val << 32) | *v++) ;
-                        trace (TRACE_FIRM | TRACE_PARSE, "%*s%s = %lu", l * indent, "", s, val);
+                        trace (TRACE_FIRM | TRACE_PARSE, "%*s%s = %llu", l * indent, "", s, val);
 
                     // String
                     } else if (!strcmp (s, "device_type") || !strcmp (s, "model") || !strcmp (s, "name") || !strcmp (s, "status")) {
