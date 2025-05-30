@@ -110,7 +110,7 @@ void Ec::create_idle()
 
 void Ec::create_root()
 {
-    trace (TRACE_PERF, "TIME: %lums %lums/%lums",
+    trace (TRACE_PERF, "TIME: %llums %llums/%llums",
            Stc::ticks_to_ms (Timer::time() - Multiboot::t0),
            Stc::ticks_to_ms (Multiboot::t1 - Multiboot::t0),
            Stc::ticks_to_ms (Multiboot::t2 - Multiboot::t1));
@@ -183,9 +183,9 @@ void Ec::create_root()
             Integrity::root_phys = p->f_offs + ra;
         }
 
-        trace (TRACE_ROOT | TRACE_PARSE, "ROOT: P:%#lx => V:%#lx S:%#10lx (%#x)", p->f_offs + ra, p->v_addr, p->f_size, perm);
+        trace (TRACE_ROOT | TRACE_PARSE, "ROOT: P:%#llx => V:%#llx S:%#10llx (%#x)", p->f_offs + ra, p->v_addr, p->f_size, perm);
 
-        auto phys { aligned_dn (PAGE_SIZE (0), p->f_offs + ra) };
+        uint64_t phys { aligned_dn (PAGE_SIZE (0), p->f_offs + ra) };
         auto virt { aligned_dn (PAGE_SIZE (0), p->v_addr) };
         auto size { aligned_up (PAGE_SIZE (0), p->v_addr + p->f_size) - virt };
 

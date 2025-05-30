@@ -26,14 +26,14 @@
 
 void Acpi_table_madt::Controller_gicd::parse() const
 {
-    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICD:%#010lx", uint64_t { phys_gicd });
+    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICD:%#010llx", uint64_t { phys_gicd });
 
     Gicd::phys = phys_gicd;
 }
 
 void Acpi_table_madt::Controller_gicr::parse() const
 {
-    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICR:%#010lx (%#x)", uint64_t { phys_gicr }, uint32_t { size_gicr });
+    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICR:%#010llx (%#x)", uint64_t { phys_gicr }, uint32_t { size_gicr });
 
     if (!Gicr::enumerate (phys_gicr, size_gicr)) [[unlikely]]
         panic ("GICR enumeration failed");

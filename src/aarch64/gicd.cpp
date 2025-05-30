@@ -77,7 +77,7 @@ bool Gicd::mmap_mmio()
                 Interrupt::iid_msk = BIT_RANGE (i, 0);                                              // INTID width is flexible
             }
 
-            trace (TRACE_INTR, "GICD: %#010lx %03x:%03x r%up%u v%u ESPI:%u SPI:%u LPI:%u IID:%#x S:%u G:%u",
+            trace (TRACE_INTR, "GICD: %#010llx %03x:%03x r%up%u v%u ESPI:%u SPI:%u LPI:%u IID:%#x S:%u G:%u",
                    phys, iidr & BIT_RANGE (11, 0), iidr >> 24, iidr >> 16 & BIT_RANGE (3, 0), iidr >> 12 & BIT_RANGE (3, 0),
                    arch, Interrupt::num_espi, Interrupt::num_spi, Interrupt::num_lpi, Interrupt::iid_msk, !!(typer & BIT (10)), group & BIT (0));
 

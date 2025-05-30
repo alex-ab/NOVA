@@ -120,7 +120,7 @@ bool Gicr::mmap_mmio()
         assert (!(Kmem::ptr_to_phys (pnd_table) & BIT_RANGE (15, 0)));
     }
 
-    trace (TRACE_INTR, "GICR: %#010lx %03x:%03x r%up%u v%u EPPI:%u MPAM:%u DLPI:%u VLPI:%u PLPI:%u ID:%u (#%u)",
+    trace (TRACE_INTR, "GICR: %#010llx %03x:%03x r%up%u v%u EPPI:%u MPAM:%u DLPI:%u VLPI:%u PLPI:%u ID:%u (#%u)",
            Cpu::gicr, iidr & BIT_RANGE (11, 0), iidr >> 24, iidr >> 16 & BIT_RANGE (3, 0), iidr >> 12 & BIT_RANGE (3, 0), arch,
            Interrupt::num_eppi, !!(type & BIT (6)), !!(type & BIT (3)), !!(type & BIT (1)), !!(type & BIT (0)), idbits, Cpu::gicr_num);
 
