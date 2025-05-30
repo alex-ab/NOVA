@@ -27,7 +27,7 @@ void Acpi_table_madt::Controller_gicd::parse() const
 {
     uint64_t const gicd { phys_gicd };
 
-    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICD:%#010lx", gicd);
+    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICD:%#010llx", gicd);
 
     Gicd::phys = gicd;
 }
@@ -36,7 +36,7 @@ void Acpi_table_madt::Controller_gicr::parse() const
 {
     uint64_t const gicr { phys_gicr };
 
-    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICR:%#010lx", gicr);
+    trace (TRACE_FIRM | TRACE_PARSE, "MADT: GICR:%#010llx", gicr);
 
     Gicr::assign (gicr);
 }

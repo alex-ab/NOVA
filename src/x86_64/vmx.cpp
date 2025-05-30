@@ -213,7 +213,7 @@ void Vmcs::init()
 
     vmxon();
 
-    trace (TRACE_VIRT, "VIRT: VMX:%#x (%#x:%#x:%#lx)", root->rev, cpu_pri_clr, cpu_sec_clr, cpu_ter_clr);
+    trace (TRACE_VIRT, "VIRT: VMX:%#x (%#x:%#x:%#llx)", root->rev, cpu_pri_clr, cpu_sec_clr, cpu_ter_clr);
 }
 
 void Vmcs::fini()

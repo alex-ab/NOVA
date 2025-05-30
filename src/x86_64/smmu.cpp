@@ -46,7 +46,7 @@ Smmu::Smmu (uint64_t p, Grp *g, Inv *q) : List { list }, Mmio { p, PAGE_SIZE (0)
 
     auto const ver { read (Reg32::VER) };
 
-    trace (TRACE_SMMU, "SMMU: %#010lx %u.%u SEG:%#06x CAP:%#018lx ECAP:%#018lx LEV:%u MLL:%u", phys, ver >> 4 & BIT_RANGE (3, 0), ver & BIT_RANGE (3, 0), grp->seg, cap, ecap, lev(), mll());
+    trace (TRACE_SMMU, "SMMU: %#010lx %u.%u SEG:%#06x CAP:%#018llx ECAP:%#018llx LEV:%u MLL:%u", phys, ver >> 4 & BIT_RANGE (3, 0), ver & BIT_RANGE (3, 0), grp->seg, cap, ecap, lev(), mll());
 }
 
 Smmu *Smmu::setup (uint64_t phys, uint16_t seg)
@@ -201,7 +201,7 @@ void Smmu::fault()
         uint64_t hi, lo;
         for (unsigned frr { fsts >> 8 & BIT_RANGE (7, 0) }; read (frr, hi, lo), hi & BIT64 (63); frr = (frr + 1) % nfr()) {
             pci_t const src { static_cast<uint16_t>(hi) };
-            trace (TRACE_SMMU, "SMMU: %#010lx FRR:%u FR:%#x SRC:%02x:%02x.%x FI:%#010lx", phys, frr, static_cast<uint8_t>(hi >> 32), Pci::bus (src), Pci::dev (src), Pci::fun (src), lo);
+            trace (TRACE_SMMU, "SMMU: %#010lx FRR:%u FR:%#x SRC:%02x:%02x.%x FI:%#010llx", phys, frr, static_cast<uint8_t>(hi >> 32), Pci::bus (src), Pci::dev (src), Pci::fun (src), lo);
         }
     }
 
@@ -224,7 +224,7 @@ void Smmu::fault()
 
         // Invalidation Queue Error
         if (fsts & Fault::IQE) [[unlikely]]
-            trace (TRACE_SMMU, "SMMU: %#010lx IQE %lu", phys, error & BIT_RANGE (3, 0));
+            trace (TRACE_SMMU, "SMMU: %#010lx IQE %llu", phys, error & BIT_RANGE (3, 0));
     }
 
     write (Reg32::FSTS, Fault::ITE | Fault::ICE | Fault::IQE | Fault::APF | Fault::AFO | Fault::PFO);

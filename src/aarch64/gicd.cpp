@@ -54,7 +54,7 @@ bool Gicd::mmap_mmio()
             intid = min (32 * ((typer & BIT_RANGE (4, 0)) + 1), Intid::BASE_RSV);
             group = arch >= 3 || typer & BIT (10) ? GROUP1 : GROUP0;
 
-            trace (TRACE_INTR, "GICD: %#010lx v%u r%up%u Impl:%#x Prod:%#x ESPI:%u LPIS:%u INT:%u S:%u G:%u",
+            trace (TRACE_INTR, "GICD: %#010llx v%u r%up%u Impl:%#x Prod:%#x ESPI:%u LPIS:%u INT:%u S:%u G:%u",
                    phys, arch, iidr >> 16 & BIT_RANGE (3, 0), iidr >> 12 & BIT_RANGE (3, 0), iidr & BIT_RANGE (11, 0), iidr >> 24,
                    arch >= 3 ? !!(typer & BIT (8)) : 0, arch >= 3 ? !!(typer & BIT (17)) : 0, intid, !!(typer & BIT (10)), group & BIT (0));
 

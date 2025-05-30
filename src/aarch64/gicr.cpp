@@ -81,7 +81,7 @@ void Gicr::init_mmio()
     auto const iidr { read (Reg32::IIDR) };
     auto const type { read (Reg64::TYPER) };
 
-    trace (TRACE_INTR, "GICR: %#010lx v%u r%up%u Impl:%#x Prod:%#x EPPI:%u MPAM:%u",
+    trace (TRACE_INTR, "GICR: %#010llx v%u r%up%u Impl:%#x Prod:%#x EPPI:%u MPAM:%u",
            Cpu::gicr, arch, iidr >> 16 & BIT_RANGE (3, 0), iidr >> 12 & BIT_RANGE (3, 0), iidr & BIT_RANGE (11, 0), iidr >> 24,
            !!(type >> 27 & BIT_RANGE (4, 0)), !!(type & BIT (6)));
 

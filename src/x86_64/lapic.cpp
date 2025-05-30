@@ -112,7 +112,7 @@ void Lapic::init (uint32_t clk, uint32_t rat)
 
         Stc::freq = f ? f : t * 100;
 
-        trace (TRACE_INTR, "FREQ: %lu Hz (%s) Ratio:%u", Stc::freq, f ? "enumerated" : "measured", ratio);
+        trace (TRACE_INTR, "FREQ: %llu Hz (%s) Ratio:%u", Stc::freq, f ? "enumerated" : "measured", ratio);
 
         if (!Txt::launched) {
             send_exc (Acpi::sipi >> PAGE_BITS, Delivery::DLV_SIPI);

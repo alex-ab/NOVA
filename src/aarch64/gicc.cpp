@@ -67,7 +67,7 @@ void Gicc::init_mmio()
     auto const iidr { read (Reg32::IIDR) };
     auto const arch { iidr >> 16 & BIT_RANGE (3, 0) };
 
-    trace (TRACE_INTR, "GICC: %#010lx v%u r%up%u Impl:%#x Prod:%#x",
+    trace (TRACE_INTR, "GICC: %#010llx v%u r%up%u Impl:%#x Prod:%#x",
            phys, arch, arch, iidr >> 12 & BIT_RANGE (3, 0), iidr & BIT_RANGE (11, 0), iidr >> 20);
 }
 
