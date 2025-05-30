@@ -380,10 +380,10 @@ void Txt::init()
     auto const pre_acm { reinterpret_cast<Data_pre_acm const *>(pre_mle->data.next()) };
     auto const acm_mle { reinterpret_cast<Data_acm_mle const *>(pre_acm->data.next()) };
 
-    trace (TRACE_DRTM, "DRTM: EFI-PRE v%u: %4lu", uint32_t { efi_pre->version }, uint64_t { efi_pre->data.size });
-    trace (TRACE_DRTM, "DRTM: PRE-MLE v%u: %4lu", uint32_t { 0 },                uint64_t { pre_mle->data.size });
-    trace (TRACE_DRTM, "DRTM: PRE-ACM v%u: %4lu", uint32_t { pre_acm->version }, uint64_t { pre_acm->data.size });
-    trace (TRACE_DRTM, "DRTM: ACM-MLE v%u: %4lu", uint32_t { acm_mle->version }, uint64_t { acm_mle->data.size });
+    trace (TRACE_DRTM, "DRTM: EFI-PRE v%u: %4llu", uint32_t { efi_pre->version }, uint64_t { efi_pre->data.size });
+    trace (TRACE_DRTM, "DRTM: PRE-MLE v%u: %4llu", uint32_t { 0 },                uint64_t { pre_mle->data.size });
+    trace (TRACE_DRTM, "DRTM: PRE-ACM v%u: %4llu", uint32_t { pre_acm->version }, uint64_t { pre_acm->data.size });
+    trace (TRACE_DRTM, "DRTM: ACM-MLE v%u: %4llu", uint32_t { acm_mle->version }, uint64_t { acm_mle->data.size });
 
     // Consume extended heap elements
     parse_elem (pre_acm->elem(), pre_acm->data.next(), heap_offs);

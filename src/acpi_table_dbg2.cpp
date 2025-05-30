@@ -25,7 +25,7 @@ void Acpi_table_dbg2::parse() const
         auto const i { reinterpret_cast<Info const *>(ptr) };
         auto const r { reinterpret_cast<Acpi_gas const *>(ptr + i->regs_off) };
 
-        trace (TRACE_FIRM, "DBG2: Console %04x:%04x (%u:%#lx:%u:%u)", uint16_t { i->type }, uint16_t { i->subtype }, std::to_underlying (r->asid), uint64_t { r->addr }, uint8_t { r->bits }, uint8_t { r->accs });
+        trace (TRACE_FIRM, "DBG2: Console %04x:%04x (%u:%#llx:%u:%u)", uint16_t { i->type }, uint16_t { i->subtype }, std::to_underlying (r->asid), uint64_t { r->addr }, uint8_t { r->bits }, uint8_t { r->accs });
 
         Console::bind (Debug::Type { uint16_t { i->type } }, Debug::Subtype { uint16_t { i->subtype } }, *r);
 

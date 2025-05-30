@@ -20,7 +20,7 @@
 
 bool Integrity::measure()
 {
-    constexpr auto chunk_size { Hpt::page_size (Hpt::bpl) };
+    constexpr uint64_t chunk_size { Hpt::page_size (Hpt::bpl) };
 
     Hash_sha1_160 sha1_160;
     Hash_sha2_256 sha2_256;

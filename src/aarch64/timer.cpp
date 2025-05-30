@@ -35,7 +35,7 @@ void Timer::init()
     }
 
     if (!Acpi::resume)
-        trace (TRACE_TIMR, "TIMR: EL2p:%u%c EL1v:%u%c %lu Hz", ppi_el2_p, lvl_el2_p ? 'L' : 'E', ppi_el1_v, lvl_el1_v ? 'L' : 'E', freq);
+        trace (TRACE_TIMR, "TIMR: EL2p:%u%c EL1v:%u%c %llu Hz", ppi_el2_p, lvl_el2_p ? 'L' : 'E', ppi_el1_v, lvl_el1_v ? 'L' : 'E', freq);
 
     // Configure EL1v timer interrupt
     Gicr::conf_ppi (Intid::from_ppi (ppi_el1_v), lvl_el1_v);
