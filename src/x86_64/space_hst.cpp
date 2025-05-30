@@ -45,7 +45,7 @@ Space_hst::Space_hst() : Space_mem { Kobject::Subtype::HST }, pcid { 0 }
 
     // Compute image addresses within mappable bounds
     auto const s { min (max_addr, Kmem::sym_to_phys (&NOVA_HPAS)) };
-    auto const e { min (max_addr, Multiboot::ea) };
+    auto const e { min (max_addr, uintptr_t(Multiboot::ea)) };
 
     access_ctrl (0, s, Paging::Permissions (Paging::U | Paging::API));
     access_ctrl (e, max_addr - e, Paging::Permissions (Paging::U | Paging::API));

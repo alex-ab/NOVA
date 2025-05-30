@@ -177,7 +177,7 @@ bool Ec::load_root (Space_hst *hst, uint64_t mod_s, uint64_t mod_e, uint64_t &im
         // Determine segment permissions
         auto const perm { Paging::Permissions (Paging::R * !!(p->flags & Ph::Perm::R) | Paging::W * !!(p->flags & Ph::Perm::W) | Paging::XU * !!(p->flags & Ph::Perm::X)) };
 
-        trace (TRACE_ROOT | TRACE_PARSE, "ROOT: P:%#010lx => V:%#010lx S:%#10lx (%#x)", p->f_offs + mod_s, p->v_addr, p->f_size, perm);
+        trace (TRACE_ROOT | TRACE_PARSE, "ROOT: P:%#010llx => V:%#010llx S:%#10llx (%#x)", p->f_offs + mod_s, p->v_addr, p->f_size, perm);
 
         auto phys { aligned_dn (PAGE_SIZE (0), p->f_offs + mod_s) };
         auto virt { aligned_dn (PAGE_SIZE (0), p->v_addr) };
@@ -202,7 +202,7 @@ bool Ec::load_root (Space_hst *hst, uint64_t mod_s, uint64_t mod_e, uint64_t &im
 
 void Ec::create_root()
 {
-    trace (TRACE_PERF, "TIME: %lums %lums/%lums",
+    trace (TRACE_PERF, "TIME: %llums %llums/%llums",
            Stc::ticks_to_ms (Timer::time() - Multiboot::t0),
            Stc::ticks_to_ms (Multiboot::t1 - Multiboot::t0),
            Stc::ticks_to_ms (Multiboot::t2 - Multiboot::t1));
@@ -261,7 +261,7 @@ void Ec::create_root()
     hst->update (Space_hst::utcb_addr(), Kmem::ptr_to_phys (ec->get_utcb()), 0,
                  Paging::Permissions (/* Paging::K |*/ Paging::U | Paging::R | Paging::W), Memattr::ram());
 
-    trace (TRACE_ROOT, "ROOT: Invoking entry point %#lx %s measuring %#lx bytes", entry, m ? "after" : "without", msize);
+    trace (TRACE_ROOT, "ROOT: Invoking entry point %#llx %s measuring %#llx bytes", entry, m ? "after" : "without", msize);
 
     Scheduler::unblock (sc);
 

@@ -83,11 +83,11 @@ bool Acpi_table_dmar::Remapping_drhd::parse() const
 
         pci_t sbdf;
         if (!s->parse (seg, sbdf)) [[unlikely]] {
-            trace (TRACE_ERROR, "SMMU: %#lx Scope Type %u Failure", uint64_t { phys }, std::to_underlying (s->type()));
+            trace (TRACE_ERROR, "SMMU: %#llx Scope Type %u Failure", uint64_t { phys }, std::to_underlying (s->type()));
             continue;
         }
 
-        trace (TRACE_FIRM | TRACE_PARSE, "SMMU: %#lx Scope Type %u Device %04x:%02x:%02x.%x", uint64_t { phys }, std::to_underlying (s->type()), Pci::seg (sbdf), Pci::bus (sbdf), Pci::dev (sbdf), Pci::fun (sbdf));
+        trace (TRACE_FIRM | TRACE_PARSE, "SMMU: %#llx Scope Type %u Device %04x:%02x:%02x.%x", uint64_t { phys }, std::to_underlying (s->type()), Pci::seg (sbdf), Pci::bus (sbdf), Pci::dev (sbdf), Pci::fun (sbdf));
 
         switch (s->type()) {
             case Scope::Type::PCI_EP:

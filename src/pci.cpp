@@ -164,7 +164,7 @@ bool Pci::init_seg (uint64_t phys, uint16_t const seg, uint8_t const sbn, uint8_
     if ((virt | phys) & Pte_hst::offs_mask (Pte_hst::bpl))
         return false;
 
-    trace (TRACE_PCI, "PCIE: %#010lx Seg %#06x Bus %#04x-%#04x", phys, seg, sbn, ebn);
+    trace (TRACE_PCI, "PCIE: %#010llx Seg %#06x Bus %#04x-%#04x", phys, seg, sbn, ebn);
 
     for (unsigned o; size; size -= BITN (o), phys += BITN (o), virt += BITN (o))
         Ptab_hst::master_map (virt, phys, (o = aligned_order (size, phys, virt)) - PAGE_BITS, Paging::Permissions (Paging::G | Paging::W | Paging::R), Memattr::dev());

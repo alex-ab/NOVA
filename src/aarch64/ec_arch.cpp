@@ -147,7 +147,7 @@ void Ec_arch::ret_user_hypercall (Ec *const self)
     if (h) [[unlikely]]
         self->handle_hazard (h, ret_user_hypercall);
 
-    trace (TRACE_CONT, "EC:%p %s to M:%#x IP:%#lx SP:%#lx", static_cast<void *>(self), __func__, self->exc_regs().mode(), self->exc_regs().ip(), self->exc_regs().sp());
+    trace (TRACE_CONT, "EC:%p %s to M:%#x IP:%#llx SP:%#llx", static_cast<void *>(self), __func__, self->exc_regs().mode(), self->exc_regs().ip(), self->exc_regs().sp());
 
     if (Vmcb::current)
         Vmcb::load_hst();
@@ -165,7 +165,7 @@ void Ec_arch::ret_user_exception (Ec *const self)
     if (h) [[unlikely]]
         self->handle_hazard (h, ret_user_exception);
 
-    trace (TRACE_CONT, "EC:%p %s to M:%#x IP:%#lx SP:%#lx", static_cast<void *>(self), __func__, self->exc_regs().mode(), self->exc_regs().ip(), self->exc_regs().sp());
+    trace (TRACE_CONT, "EC:%p %s to M:%#x IP:%#llx SP:%#llx", static_cast<void *>(self), __func__, self->exc_regs().mode(), self->exc_regs().ip(), self->exc_regs().sp());
 
     if (Vmcb::current)
         Vmcb::load_hst();
@@ -183,7 +183,7 @@ void Ec_arch::ret_user_vmexit (Ec *const self)
     if (h) [[unlikely]]
         self->handle_hazard (h, ret_user_vmexit);
 
-    trace (TRACE_CONT, "EC:%p %s to M:%#x IP:%#lx", static_cast<void *>(self), __func__, self->exc_regs().mode(), self->exc_regs().ip());
+    trace (TRACE_CONT, "EC:%p %s to M:%#x IP:%#llx", static_cast<void *>(self), __func__, self->exc_regs().mode(), self->exc_regs().ip());
 
     auto const v { self->regs.vmcb };
 

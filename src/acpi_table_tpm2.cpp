@@ -34,7 +34,7 @@ bool Acpi_table_tpm2::parse() const
 
         auto const ctrl { std::start_lifetime_as<Control const> (m) };
 
-        trace (TRACE_TPM, "TPM2: CTRL:%#lx CMD:%#lx/%#x RSP:%#lx/%#x",
+        trace (TRACE_TPM, "TPM2: CTRL:%#llx CMD:%#llx/%#x RSP:%#llx/%#x",
                uint64_t { ctrl_area }, uint64_t { ctrl->cmd_addr_hi } << 32 | uint64_t { ctrl->cmd_addr_lo },
                uint32_t { ctrl->cmd_size }, uint64_t { ctrl->rsp_addr }, uint32_t { ctrl->rsp_size });
     }

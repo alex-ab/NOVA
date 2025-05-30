@@ -435,10 +435,10 @@ void Txt::init()
     if (!efi_pre || !pre_mle || !pre_acm || !acm_mle) [[unlikely]]
         panic ("DRTM: Malformed TXT heap");
 
-    trace (TRACE_DRTM, "DRTM: EFI-PRE v%u: %4lu", uint32_t { efi_pre->version }, uint64_t { efi_pre->size });
-    trace (TRACE_DRTM, "DRTM: PRE-MLE v%u: %4lu", uint32_t { 0 },                uint64_t { pre_mle->size });
-    trace (TRACE_DRTM, "DRTM: PRE-ACM v%u: %4lu", uint32_t { pre_acm->version }, uint64_t { pre_acm->size });
-    trace (TRACE_DRTM, "DRTM: ACM-MLE v%u: %4lu", uint32_t { acm_mle->version }, uint64_t { acm_mle->size });
+    trace (TRACE_DRTM, "DRTM: EFI-PRE v%u: %4llu", uint32_t { efi_pre->version }, uint64_t { efi_pre->size });
+    trace (TRACE_DRTM, "DRTM: PRE-MLE v%u: %4llu", uint32_t { 0 },                uint64_t { pre_mle->size });
+    trace (TRACE_DRTM, "DRTM: PRE-ACM v%u: %4llu", uint32_t { pre_acm->version }, uint64_t { pre_acm->size });
+    trace (TRACE_DRTM, "DRTM: ACM-MLE v%u: %4llu", uint32_t { acm_mle->version }, uint64_t { acm_mle->size });
 
     // Consume extended heap elements
     if (pre_acm->version >= 6) [[likely]]
