@@ -205,7 +205,7 @@ void Sc::rrq_handler()
 
         ptr = ptr->next == ptr ? nullptr : ptr->next;
 
-        if (sc->disable && !sc->ec->partner && !sc->ec->rcap) {
+        if (sc->disable && !sc->ec->partner && !sc->ec->rcap && sc->ec->cont != Ec::ret_xcpu_reply) {
             if (sc->del_rcu())
                 Rcu::call(sc);
             continue;
