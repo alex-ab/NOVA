@@ -1,8 +1,10 @@
 /*
- * Constant-Width Types
+ * Type Definitions
  *
  * Copyright (C) 2009-2011 Udo Steinberg <udo@hypervisor.org>
  * Economic rights: Technische Universitaet Dresden (Germany)
+ *
+ * Copyright (C) 2019-2025 Udo Steinberg, BlueRock Security, Inc.
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -18,21 +20,30 @@
 
 #pragma once
 
-#include <stddef.h>
+// Signed Integer Types
+using int32_t       = __INT32_TYPE__;
+using int64_t       = __INT64_TYPE__;
 
-typedef unsigned char       uint8;
-typedef unsigned short      uint16;
-typedef unsigned int        uint32;
-typedef unsigned long long  uint64;
+using uint8         = __UINT8_TYPE__;
+using uint16        = __UINT16_TYPE__;
+using uint32        = __UINT32_TYPE__;
+using uint64        = __UINT64_TYPE__;
 
-typedef unsigned char       uint8_t;
-typedef unsigned short      uint16_t;
-typedef unsigned int        uint32_t;
-typedef unsigned long long  uint64_t;
+// Unsigned Integer Types
+using uint8_t       = __UINT8_TYPE__;
+using uint16_t      = __UINT16_TYPE__;
+using uint32_t      = __UINT32_TYPE__;
+using uint64_t      = __UINT64_TYPE__;
+#ifdef __x86_64__
+using uint128_t     = __uint128_t;
+#endif
+
+// Size Types
+using size_t        = __SIZE_TYPE__;
 
 typedef unsigned long       mword;
 typedef unsigned long       Paddr;
 
 // NOVA Types
-using apic_t    = uint32_t;
-using cpu_t     = uint16_t;
+using apic_t        = uint32_t;
+using cpu_t         = uint16_t;

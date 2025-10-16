@@ -6,8 +6,8 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
- * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
- * Copyright (C) 2015-2024 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2019-2025 Udo Steinberg, BlueRock Security, Inc.
+ * Copyright (C) 2015-2025 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -29,7 +29,9 @@
 #include "idt.hpp"
 #include "lapic.hpp"
 #include "mca.hpp"
+#include "memattr.hpp"
 #include "msr.hpp"
+#include "pconfig.hpp"
 #include "pd.hpp"
 #include "signature.hpp"
 #include "stdio.hpp"
@@ -265,13 +267,12 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
         trace (0, "warning: no PAT support");
 }
 
-void Cpu::setup_thermal()
+void Cpu::setup_msr()
 {
-    Msr::write (Msr::IA32_THERM_INTERRUPT, 0x10);
-}
+    if (feature (Feature::ACPI)) [[likely]]
+        Msr::write (Msr::Reg64::IA32_THERM_INTERRUPT, 0x10);
 
-void Cpu::setup_sysenter()
-{
+    if (feature (Feature::SEP)) [[likely]] {
 #ifdef __i386__
     Msr::write (Msr::IA32_SYSENTER_CS,  SEL_KERN_CODE);
     Msr::write (Msr::IA32_SYSENTER_ESP, reinterpret_cast<mword>(&Tss::run.sp0));
@@ -281,6 +282,24 @@ void Cpu::setup_sysenter()
     Msr::write (Msr::IA32_LSTAR, reinterpret_cast<mword>(&entry_sysenter));
     Msr::write (Msr::IA32_SFMASK, Cpu::EFL_DF | Cpu::EFL_IF | Cpu::EFL_NT | Cpu::EFL_TF);
 #endif
+    }
+
+    if (feature (Feature::TME) && bsp) [[unlikely]] {
+
+        trace (TRACE_CPU, "TMEE: Split:%u/%u Keys:%u Algo:%#x", Memattr::kbits, Memattr::obits, Memattr::kimax, Memattr::crypt);
+
+        // FIXME: Check for valid PCONFIG targets
+        if (feature (Feature::PCONFIG) && Memattr::crypt) [[likely]] {
+
+            Pconfig::Encrypt const e { static_cast<uint8_t>(BIT (bit_scan_msb (Memattr::crypt))) };
+
+            for (uint16_t i { 0 }; i < Memattr::kimax; i++) {
+                bool result = (Cmdline::nomktme ? Pconfig::key_clr : Pconfig::key_rnd)(i + 1, e);
+                if (!result)
+                    trace(0, "TME-MK programming failed, key %d", i + 1);
+            }
+        }
+    }
 }
 
 void Cpu::setup_pcid()
@@ -351,11 +370,7 @@ void Cpu::init(bool resume)
         Hpt::ord = min (Hpt::ord, feature (GB_PAGES) ? 26UL : 17UL);
     }
 
-    if (EXPECT_TRUE (feature (Feature::ACPI)))
-        setup_thermal();
-
-    if (EXPECT_TRUE (feature (Feature::SEP)))
-        setup_sysenter();
+    setup_msr();
 
     setup_pcid();
 
@@ -393,7 +408,7 @@ void Cpu::init(bool resume)
         Cpu::defeature (Cpu::FEAT_MWAIT_IRQ);
     }
 
-    trace (TRACE_CPU, "CORE:%02x:%02x:%x %x:%x:%x:%x [%x] %s%.48s %s%s%s%s%s",
+    trace (TRACE_CPU, "CORE:%02x:%02x:%x %x:%x:%x:%x [%x] %s%.48s %s%s%s%s%s%s",
            package[Cpu::id], core[Cpu::id], thread[Cpu::id], family[Cpu::id],
            model[Cpu::id], stepping[Cpu::id], platform[Cpu::id], patch[Cpu::id],
            core_type[Cpu::id] == 0x00 ? ""   :
@@ -404,7 +419,8 @@ void Cpu::init(bool resume)
            Cpu::feature (Cpu::FEAT_MWAIT_EXT) ? "+E" : "",
            Cpu::feature (Cpu::FEAT_MWAIT_IRQ) ? "+I" : "",
            cr4 & Cpu::CR4_OSXSAVE ? " XS" : "",
-           Lapic::x2apic ? " X2" : "");
+           Lapic::x2apic ? " X2" : "",
+           Cpu::feature (Cpu::TME) ? " TME" : "");
 
     if (!resume)
         Hip::add_cpu();

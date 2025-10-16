@@ -6,8 +6,8 @@
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
- * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
- * Copyright (C) 2015-2024 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2019-2025 Udo Steinberg, BlueRock Security, Inc.
+ * Copyright (C) 2015-2025 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -39,16 +39,12 @@ class Cpu
         static constexpr char const *vendor_string[] { "Unknown", "GenuineIntel", "AuthenticAMD" };
 
         ALWAYS_INLINE
-        static inline void setup_thermal();
-
-        ALWAYS_INLINE
-        static inline void setup_sysenter();
-
-        ALWAYS_INLINE
         static inline void setup_pcid();
 
         static void enumerate_topology (uint32_t, uint32_t &, uint32_t (&)[4]);
         static void enumerate_features (uint32_t &, uint32_t &, uint32_t (&)[4], uint32_t (&)[12]);
+
+        static void setup_msr();
 
     public:
         enum class Vendor : uint8_t

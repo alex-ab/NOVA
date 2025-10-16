@@ -7,7 +7,7 @@
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
  * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
  * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
- * Copyright (C) 2017-2024 Alexander Boettcher
+ * Copyright (C) 2017-2025 Alexander Boettcher
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -144,6 +144,11 @@ class Msr final
             IA32_X2APIC             = 0x800,
 
             IA32_XSS                = 0xda0,        // XSAVE
+
+            IA32_TME_CAPABILITY     = 0x981,
+            IA32_TME_ACTIVATE       = 0x982,
+            IA32_TME_EXCLUDE_MASK   = 0x983,
+            IA32_TME_EXCLUDE_BASE   = 0x984,
 
             IA32_EFER               = 0xc0000080,
             IA32_STAR               = 0xc0000081,

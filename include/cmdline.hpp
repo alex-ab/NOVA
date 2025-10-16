@@ -52,6 +52,7 @@ class Cmdline
         static bool logmem;
         static bool fpu_lazy;
         static bool hlt;
+        static bool nomktme;
 
         INIT
         static void init (char const *);

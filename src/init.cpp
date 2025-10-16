@@ -4,7 +4,9 @@
  * Copyright (C) 2009-2011 Udo Steinberg <udo@hypervisor.org>
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
- * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2019-2025 Udo Steinberg, BlueRock Security, Inc.
+ * Copyright (C) 2017-2025 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -28,6 +30,7 @@
 #include "hpt.hpp"
 #include "idt.hpp"
 #include "keyb.hpp"
+#include "patch.hpp"
 #include "pd.hpp"
 #include "multiboot.hpp"
 #include "multiboot2.hpp"
@@ -100,6 +103,8 @@ void init (mword magic, mword mbi)
     // Setup 0-page and 1-page
     memset (reinterpret_cast<void *>(&PAGE_0),  0,  PAGE_SIZE);
     memset (reinterpret_cast<void *>(&PAGE_1), ~0u, PAGE_SIZE);
+
+    Patch::detect();
 
     for (void (**func)() = &CTORS_G; func != &CTORS_E; (*func++)()) ;
 
