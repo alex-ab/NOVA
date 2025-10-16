@@ -130,7 +130,7 @@ class Fpu
             ALWAYS_INLINE
             static inline void make_current (State_xsv const &o, State_xsv const &n)
             {
-                if (!Cpu::feature (Cpu::FEAT_XSAVE))
+                if (!Cpu::feature (Cpu::Feature::XSAVE))
                     return;
 
                 if (EXPECT_FALSE (o.xcr != n.xcr))

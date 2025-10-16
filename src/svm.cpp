@@ -102,7 +102,7 @@ void Vmcb::destroy(Vmcb &obj, Quota &quota)
 
 void Vmcb::init()
 {
-    if (!Cpu::feature (Cpu::FEAT_SVM) || (Msr::read (Msr::AMD_SVM_VM_CR) & 0x10)) {
+    if (!Cpu::feature (Cpu::Feature::SVM) || (Msr::read (Msr::AMD_SVM_VM_CR) & 0x10)) {
         Hip::clr_feature (Hip::FEAT_SVM);
         return;
     }

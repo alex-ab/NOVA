@@ -60,7 +60,7 @@ unsigned    Cpu::brand;
 unsigned    Cpu::patch[NUM_CPU];
 unsigned    Cpu::row;
 
-uint32      Cpu::features[11];
+uint32_t    Cpu::features[13];
 bool        Cpu::bsp;
 bool        Cpu::preemption;
 unsigned    Cpu::mwait_hint;
@@ -135,7 +135,7 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
             [[fallthrough]];
         case 0x7 ... 0xa:
             eax = ebx = ecx = edx = 0;
-            cpuid (0x7, 0, eax, features[3], ecx, edx);
+            cpuid (0x7, 0, eax, features[3], features[4], features[5]);
             /* hybrid flag (edx & (1u << 15)) */
             [[fallthrough]];
         case 0x6:
@@ -153,7 +153,7 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
             [[fallthrough]];
         case 0x1 ... 0x3:
             eax = ebx = ecx = edx = 0;
-            cpuid (0x1, eax, ebx, features[1], features[0]);
+            cpuid (0x1, eax, ebx, features[0], features[1]);
             family[Cpu::id]   = ((eax >> 8 & 0xf) + (eax >> 20 & 0xff)) & 0xff;
             model[Cpu::id]    = ((eax >> 4 & 0xf) + (eax >> 12 & 0xf0)) & 0xff;
             stepping[Cpu::id] =  eax & 0xf;
@@ -163,7 +163,7 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
 
             if (topology == invalid_topology) {
                 topology = ebx >> 24;
-                auto const tpp_ { feature (FEAT_HTT) ? ebx >> 16 & BIT_RANGE (7, 0) : 1 };
+                auto const tpp_ { feature (Feature::HTT) ? ebx >> 16 & BIT_RANGE (7, 0) : 1 };
                 auto const tpc { tpp_ / cpp };
                 auto const c { bit_scan_msb (cpp - 1) + 1 };
                 auto const t { bit_scan_msb (tpc - 1) + 1 };
@@ -230,17 +230,17 @@ void Cpu::enumerate_features (uint32_t &, uint32_t &, uint32_t (&lvl)[4], uint32
                 [[fallthrough]];
             case 0x1:
                 eax = ebx = ecx = edx = 0;
-                cpuid (0x80000001, eax, ebx, features[5], features[4]);
+                cpuid (0x80000001, eax, ebx, features[11], features[12]);
         }
 
         if (vendor == Vendor::AMD && smt)
-            defeature (FEAT_CMP_LEGACY);
+            defeature (CMP_LEGACY);
     }
 
-    if (feature (FEAT_CMP_LEGACY))
+    if (feature (CMP_LEGACY))
         cpp = tpp;
 
-    unsigned tpc = tpp / cpp;
+    unsigned tpc = tpp / (!cpp ? 1 : cpp);
     unsigned long t_bits = bit_scan_reverse (tpc - 1) + 1;
     unsigned long c_bits = bit_scan_reverse (cpp - 1) + 1;
 
@@ -288,9 +288,9 @@ void Cpu::setup_pcid()
 #ifdef __x86_64__
     if (EXPECT_FALSE (Cmdline::nopcid))
 #endif
-        defeature (FEAT_PCID);
+        defeature (Feature::PCID);
 
-    if (EXPECT_FALSE (!feature (FEAT_PCID)))
+    if (EXPECT_FALSE (!feature (Feature::PCID)))
         return;
 
     set_cr4 (get_cr4() | Cpu::CR4_PCIDE);
@@ -348,25 +348,25 @@ void Cpu::init(bool resume)
         Pd::kern.Space_mem::loc[id] = Hptp (Hpt::current());
         Pd::kern.Space_mem::loc[id].lookup (CPU_LOCAL_DATA, phys, attr);
         Pd::kern.Space_mem::insert (Pd::kern.quota, HV_GLOBAL_CPUS + id * PAGE_SIZE, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P, phys);
-        Hpt::ord = min (Hpt::ord, feature (FEAT_1GB_PAGES) ? 26UL : 17UL);
+        Hpt::ord = min (Hpt::ord, feature (GB_PAGES) ? 26UL : 17UL);
     }
 
-    if (EXPECT_TRUE (feature (FEAT_ACPI)))
+    if (EXPECT_TRUE (feature (Feature::ACPI)))
         setup_thermal();
 
-    if (EXPECT_TRUE (feature (FEAT_SEP)))
+    if (EXPECT_TRUE (feature (Feature::SEP)))
         setup_sysenter();
 
     setup_pcid();
 
     mword cr4 = get_cr4();
 
-    if (EXPECT_TRUE (feature (FEAT_SMEP ))) cr4 |= Cpu::CR4_SMEP;
-    if (EXPECT_TRUE (feature (FEAT_SMAP ))) cr4 |= Cpu::CR4_SMAP;
+    if (EXPECT_TRUE (feature (SMEP))) cr4 |= Cpu::CR4_SMEP;
+    if (EXPECT_TRUE (feature (SMAP))) cr4 |= Cpu::CR4_SMAP;
 #ifdef __x86_64__
-    if (EXPECT_TRUE (feature (FEAT_XSAVE))) cr4 |= Cpu::CR4_OSXSAVE;
+    if (EXPECT_TRUE (feature (XSAVE))) cr4 |= Cpu::CR4_OSXSAVE;
 #else
-    Cpu::defeature (Cpu::FEAT_XSAVE);
+    Cpu::defeature (Cpu::XSAVE);
 #endif
 
     if (cr4 != get_cr4())
@@ -376,7 +376,7 @@ void Cpu::init(bool resume)
         Fpu::probe();
 
         /* XSAVE may be disabled by FPU::probe if state is too large */
-        if (cr4 & Cpu::CR4_OSXSAVE && !feature(FEAT_XSAVE)) {
+        if (cr4 & Cpu::CR4_OSXSAVE && !feature(Feature::XSAVE)) {
             cr4 &= ~mword(Cpu::CR4_OSXSAVE);
             set_cr4 (cr4);
         }
@@ -388,7 +388,7 @@ void Cpu::init(bool resume)
     Mca::init();
 
     if (EXPECT_FALSE (Cmdline::hlt)) {
-        Cpu::defeature (Cpu::FEAT_MONITOR_MWAIT);
+        Cpu::defeature (Cpu::Feature::MONITOR_MWAIT);
         Cpu::defeature (Cpu::FEAT_MWAIT_EXT);
         Cpu::defeature (Cpu::FEAT_MWAIT_IRQ);
     }
@@ -400,7 +400,7 @@ void Cpu::init(bool resume)
            core_type[Cpu::id] == Cpu::INTEL_CORE ? "P " :
            core_type[Cpu::id] == Cpu::INTEL_ATOM ? "E " : "? ",
            reinterpret_cast<char *>(name),
-           Cpu::feature (Cpu::FEAT_MONITOR_MWAIT) ? "MWAIT" : "HLT",
+           Cpu::feature (Cpu::Feature::MONITOR_MWAIT) ? "MWAIT" : "HLT",
            Cpu::feature (Cpu::FEAT_MWAIT_EXT) ? "+E" : "",
            Cpu::feature (Cpu::FEAT_MWAIT_IRQ) ? "+I" : "",
            cr4 & Cpu::CR4_OSXSAVE ? " XS" : "",
@@ -409,7 +409,7 @@ void Cpu::init(bool resume)
     if (!resume)
         Hip::add_cpu();
 
-    if (Cpu::feature (Cpu::FEAT_RDTSCP))
+    if (Cpu::feature (Cpu::RDTSCP))
         Msr::write (Msr::IA32_TSC_AUX, Cpu::id);
 
     Cpu::mwait_hint = ~0U; /* invalid */

@@ -61,7 +61,7 @@ void Lapic::init(bool const invariant_tsc)
     // SW enable
     write (Reg32::SVR, read (Reg32::SVR) | BIT (8));
 
-    bool const dl { Cpu::feature (Cpu::Feature::FEAT_TSC_DEADLINE) && !Cmdline::nodl };
+    bool const dl { Cpu::feature (Cpu::Feature::TSC_DEADLINE) && !Cmdline::nodl };
 
     switch (lvt_max()) {
         default:            // 7 entries since NHM
@@ -136,7 +136,7 @@ bool Lapic::read_tsc_freq()
     unsigned const model  = Cpu::model[Cpu::id];
     unsigned const family = Cpu::family[Cpu::id];
 
-    bool const dl = Cpu::feature (Cpu::FEAT_TSC_DEADLINE) && !Cmdline::nodl;
+    bool const dl = Cpu::feature (Cpu::Feature::TSC_DEADLINE) && !Cmdline::nodl;
 
     enum { CPU_ID_CLOCK = 0x15 };
 

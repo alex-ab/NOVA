@@ -136,7 +136,7 @@ Vmcs::Vmcs (Quota &quota, mword esp, mword bmp, mword cr3, uint64 eptp) : rev (b
 
 void Vmcs::init()
 {
-    if (!Cpu::feature (Cpu::FEAT_VMX) || (Msr::read (Msr::IA32_FEATURE_CONTROL) & 0x5) != 0x5) {
+    if (!Cpu::feature (Cpu::Feature::VMX) || (Msr::read (Msr::IA32_FEATURE_CONTROL) & 0x5) != 0x5) {
         Hip::clr_feature (Hip::FEAT_VMX);
         return;
     }

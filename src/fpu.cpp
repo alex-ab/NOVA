@@ -33,7 +33,7 @@ void Fpu::init()
 void Fpu::save()
 {
 #ifdef __x86_64__
-    if (Cpu::feature (Cpu::FEAT_XSAVE)) {
+    if (Cpu::feature (Cpu::Feature::XSAVE)) {
         if (compact && !no_compact)
             asm volatile ("xsaves64 %0" : "=m" (*this)
                                         :  "d" (unsigned(managed >> 32)),
@@ -67,7 +67,7 @@ void Fpu::load()
     bool bad = false;
 
 #ifdef __x86_64__
-    if (Cpu::feature (Cpu::FEAT_XSAVE))
+    if (Cpu::feature (Cpu::Feature::XSAVE))
         if (compact && !no_compact)
             asm volatile (FIXUP("xrstors64  %1")
                           : "=@ccc"(bad)
@@ -87,7 +87,7 @@ void Fpu::load()
         asm volatile (FIXUP("fxrstor %1") : "=@ccc"(bad) : "m" (*this));
 
     if (bad) {
-        if (Cpu::feature (Cpu::FEAT_XSAVE) && compact)
+        if (Cpu::feature (Cpu::Feature::XSAVE) && compact)
             no_compact = true;
 
         Fpu::init();
@@ -99,7 +99,7 @@ void Fpu::probe()
     if (Cpu::bsp)
         empty = Fpu();
 
-    if (!Cpu::feature (Cpu::FEAT_XSAVE))
+    if (!Cpu::feature (Cpu::Feature::XSAVE))
         return;
 
     // Enable supervisor state components in IA32_XSS
@@ -120,7 +120,7 @@ void Fpu::probe()
 
     if (Fpu::size > sizeof(Fpu) - sizeof(Fpu::no_compact)) {
         trace(0, "FPU: size %zu too large -> use legacy X87 FPU", Fpu::size);
-        Cpu::defeature (Cpu::FEAT_XSAVE);
+        Cpu::defeature (Cpu::Feature::XSAVE);
         Fpu::size = 512;
     }
 }

@@ -303,7 +303,7 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         ALWAYS_INLINE
         inline void check_hazard_tsc_aux()
         {
-            if (!Cpu::feature (Cpu::FEAT_RDTSCP))
+            if (!Cpu::feature (Cpu::Feature::RDTSCP))
                 return;
 
             bool const current_is_vm = current->vcpu();

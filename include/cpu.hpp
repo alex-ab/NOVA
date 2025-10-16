@@ -66,28 +66,44 @@ class Cpu
 
         enum Feature
         {
-            FEAT_MCE            =  7,
-            FEAT_SEP            = 11,
-            FEAT_MCA            = 14,
-            FEAT_ACPI           = 22,
-            FEAT_HTT            = 28,
-            FEAT_MONITOR_MWAIT  = 32 * 1 +  3,
-            FEAT_VMX            = 32 * 1 +  5,
-            FEAT_PCID           = 32 * 1 + 17,
-            FEAT_TSC_DEADLINE   = 32 * 1 + 24,
-            FEAT_XSAVE          = 32 * 1 + 26,
-            FEAT_CPU_TEMP       = 64,
-            FEAT_PKG_TEMP       = 70,
-            FEAT_HWP_7          = 71,
-            FEAT_HWP_9          = 73,
-            FEAT_HWP_10         = 74,
-            FEAT_HWP_11         = 75,
-            FEAT_SMEP           = 103,
-            FEAT_SMAP           = 116,
-            FEAT_1GB_PAGES      = 154,
-            FEAT_RDTSCP         = 32 * 4 + 27,
-            FEAT_CMP_LEGACY     = 161,
-            FEAT_SVM            = 162,
+            // EAX=0x1 (ECX)
+            MONITOR_MWAIT           =  0 * 32 +  3,     // MONITOR/MWAIT Support
+            VMX                     =  0 * 32 +  5,     // Virtual Machine Extensions
+            EIST                    =  0 * 32 +  7,     // Enhanced Intel SpeedStep Technology
+            PCID                    =  0 * 32 + 17,     // Process Context Identifiers
+            X2APIC                  =  0 * 32 + 21,     // x2APIC Support
+            TSC_DEADLINE            =  0 * 32 + 24,     // TSC Deadline Support
+            XSAVE                   =  0 * 32 + 26,     // XCR0, XSETBV/XGETBV/XSAVE/XRSTOR Instructions
+            RDRAND                  =  0 * 32 + 30,     // RDRAND Instruction
+            // EAX=0x1 (EDX)
+            MCE                     =  1 * 32 +  7,     // Machine Check Exception
+            SEP                     =  1 * 32 + 11,     // SYSENTER/SYSEXIT Instructions
+            MCA                     =  1 * 32 + 14,     // Machine Check Architecture
+            PAT                     =  1 * 32 + 16,     // Page Attribute Table
+            ACPI                    =  1 * 32 + 22,     // Thermal Monitor and Software Controlled Clock Facilities
+            HTT                     =  1 * 32 + 28,     // Hyper-Threading Technology
+            // EAX=0x6 (EAX)
+            CPU_TEMP                =  2 * 32 +  0,
+            TURBO_BOOST             =  2 * 32 +  1,     // Turbo Boost Technology
+            ARAT                    =  2 * 32 +  2,     // Always Running APIC Timer
+            PKG_TEMP                =  2 * 32 +  6,
+            HWP                     =  2 * 32 +  7,     // HWP Baseline Resource and Capability
+            HWP_NTF                 =  2 * 32 +  8,     // HWP Notification
+            HWP_ACT                 =  2 * 32 +  9,     // HWP Activity Window
+            HWP_EPP                 =  2 * 32 + 10,     // HWP Energy Performance Preference
+            HWP_PLR                 =  2 * 32 + 11,     // HWP Package Level Request
+            HWP_CAP                 =  2 * 32 + 15,     // HWP Capabilities
+            HWP_PECI                =  2 * 32 + 16,     // HWP PECI Override
+            HWP_FLEX                =  2 * 32 + 17,     // HWP Flexible
+            HWP_FAM                 =  2 * 32 + 18,     // HWP Fast Access Mode
+            // EAX=0x7 ECX=0x0 (EBX)
+            SGX                     =  3 * 32 +  2,     // Software Guard Extensions
+            SMEP                    =  3 * 32 +  7,     // Supervisor Mode Execution Prevention
+            RDT_M                   =  3 * 32 + 12,     // RDT Monitoring (PQM)
+            RDT_A                   =  3 * 32 + 15,     // RDT Allocation (PQE)
+            RDSEED                  =  3 * 32 + 18,     // RDSEED Instruction
+            SMAP                    =  3 * 32 + 20,     // Supervisor Mode Access Prevention
+
             FEAT_HCFC           = 32 *  6,
             FEAT_EPB            = 32 *  6 + 3,
             FEAT_PSTATE_AMD     = 32 *  7 + 7,
@@ -95,7 +111,17 @@ class Cpu
             FEAT_MWAIT_EXT      = 32 *  8 + 0,
             FEAT_MWAIT_IRQ      = 32 *  8 + 1,
             FEAT_XSAVEOPT       = 32 * 10 + 0,
-            FEAT_FPU_COMPACT    = 32 * 10 + 3
+            FEAT_FPU_COMPACT    = 32 * 10 + 3,
+
+            TME                     =  4 * 32 + 13,     // Total Memory Encryption
+            PCONFIG                 =  5 * 32 + 18,     // PCONFIG Instruction
+            // EAX=0x80000001 (ECX)
+            CMP_LEGACY              = 11 * 32 +  1,
+            SVM                     = 11 * 32 +  2,
+            // EAX=0x80000001 (EDX)
+            GB_PAGES                = 12 * 32 + 26,     // 1GB-Pages Support
+            RDTSCP                  = 12 * 32 + 27,     // RDTSCP Instruction
+            LM                      = 12 * 32 + 29,     // Long Mode Support
         };
 
         enum
@@ -193,7 +219,7 @@ class Cpu
         static unsigned brand               CPULOCAL;
         static unsigned row                 CPULOCAL;
 
-        static uint32 features[11]          CPULOCAL;
+        static uint32_t features[13]        CPULOCAL;
         static bool bsp                     CPULOCAL;
         static bool preemption              CPULOCAL;
         static unsigned mwait_hint          CPULOCAL;
@@ -268,7 +294,7 @@ class Cpu
 
         static void halt_or_mwait(auto const &halt, auto const &mwait)
         {
-            if (!Cpu::feature (Cpu::FEAT_MONITOR_MWAIT) || mwait_hint == ~0U) {
+            if (!Cpu::feature (Cpu::MONITOR_MWAIT) || mwait_hint == ~0U) {
                 halt();
                 return;
             }

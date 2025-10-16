@@ -91,30 +91,30 @@ void Msr::user_access_intel(Utcb &utcb)
             if (!Cpu::feature(Cpu::Feature::FEAT_HCFC)) return false;
             break;
         case Msr::IA32_THERM_STATUS:
-            if (!Cpu::feature(Cpu::Feature::FEAT_CPU_TEMP)) return false;
+            if (!Cpu::feature(Cpu::Feature::CPU_TEMP)) return false;
             break;
         case Msr::IA32_THERM_PKG_STATUS:
-            if (!Cpu::feature(Cpu::Feature::FEAT_PKG_TEMP)) return false;
+            if (!Cpu::feature(Cpu::Feature::PKG_TEMP)) return false;
             break;
         case Msr::MSR_TEMPERATURE_TARGET:
-            if (!Cpu::feature(Cpu::Feature::FEAT_CPU_TEMP)) return false;
+            if (!Cpu::feature(Cpu::Feature::CPU_TEMP)) return false;
             break;
         case Msr::IA32_ENERGY_PERF_BIAS:
             if (!Cpu::feature(Cpu::Feature::FEAT_EPB)) return false;
             break;
         case Msr::IA32_PM_ENABLE:
-            if (!Cpu::feature(Cpu::Feature::FEAT_HWP_7)) return false;
+            if (!Cpu::feature(Cpu::Feature::HWP)) return false;
             break;
         case Msr::IA32_HWP_CAPABILITIES:
-            if (!Cpu::feature(Cpu::Feature::FEAT_HWP_7)) return false;
+            if (!Cpu::feature(Cpu::Feature::HWP)) return false;
             if (!(Msr::read (Msr::IA32_PM_ENABLE) & 1)) return false;
             break;
         case Msr::IA32_HWP_REQUEST_PKG:
-            if (!Cpu::feature(Cpu::Feature::FEAT_HWP_11)) return false;
+            if (!Cpu::feature(Cpu::Feature::HWP_PLR)) return false;
             if (!(Msr::read (Msr::IA32_PM_ENABLE) & 1)) return false;
             break;
         case Msr::IA32_HWP_REQUEST:
-            if (!Cpu::feature(Cpu::Feature::FEAT_HWP_7)) return false;
+            if (!Cpu::feature(Cpu::Feature::HWP)) return false;
             if (!(Msr::read (Msr::IA32_PM_ENABLE) & 1)) return false;
             break;
 
@@ -130,8 +130,8 @@ void Msr::user_access_intel(Utcb &utcb)
         case MSR_PKG_C8_RESIDENCY:
         case MSR_PKG_C9_RESIDENCY:
         case MSR_PKG_C10_RESIDENCY:
-            if (!Cpu::feature (Cpu::FEAT_MONITOR_MWAIT)) return false;
-            if (!Cpu::feature (Cpu::FEAT_MWAIT_EXT))     return false;
+            if (!Cpu::feature (Cpu::MONITOR_MWAIT)) return false;
+            if (!Cpu::feature (Cpu::FEAT_MWAIT_EXT)) return false;
             break;
 
         case MSR_RAPL_POWER_UNIT:
@@ -171,18 +171,18 @@ void Msr::user_access_intel(Utcb &utcb)
             Cpu::mwait_hint = unsigned(write_value);
             return true;
         case Msr::IA32_PM_ENABLE:
-            if (!Cpu::feature(Cpu::Feature::FEAT_HWP_7)) return false;
+            if (!Cpu::feature(Cpu::Feature::HWP)) return false;
             write_value &= 1ull;
             break;
         case Msr::IA32_HWP_REQUEST:
-            if (!Cpu::feature(Cpu::Feature::FEAT_HWP_7)) return false;
+            if (!Cpu::feature(Cpu::Feature::HWP)) return false;
             if (!(Msr::read (Msr::IA32_PM_ENABLE) & 1)) return false;
             break;
         case Msr::IA32_ENERGY_PERF_BIAS:
             if (!Cpu::feature(Cpu::Feature::FEAT_EPB)) return false;
             break;
         case Msr::IA32_HWP_REQUEST_PKG:
-            if (!Cpu::feature(Cpu::Feature::FEAT_HWP_11)) return false;
+            if (!Cpu::feature(Cpu::Feature::HWP_PLR)) return false;
             if (!(Msr::read (Msr::IA32_PM_ENABLE) & 1)) return false;
             break;
         default:
