@@ -38,17 +38,15 @@ The virtualization features are available on:
 Building from source code
 -------------------------
 
-You need the following tools to compile the source code:
+### Required Tools
 
-- make 3.81 or higher,
-  available from http://www.gnu.org/software/make/
+The following tools are required to compile the source code:
 
-- binutils 2.21.51.0.3 or higher,
-  available from http://www.kernel.org/pub/linux/devel/binutils/
-
-- gcc, available from http://gcc.gnu.org/
-  - for x86_32: gcc 4.2 or higher
-  - for x86_64: gcc 4.5 or higher
+| **Tool** | **Minimum Version** | **Available From**                |
+| :------- | :-----------------: | :-------------------------------- |
+| binutils | 2.38                | https://ftp.gnu.org/gnu/binutils/ |
+| gcc      | 13.4                | https://ftp.gnu.org/gnu/gcc/      |
+| make     | 4.0                 | https://ftp.gnu.org/gnu/make/     |
 
 
 You can build a 32-bit microhypervisor binary as follows:
@@ -110,9 +108,9 @@ Copyright (C) 2009-2011 Udo Steinberg <udo@hypervisor.org>
 Economic rights: Technische Universitaet Dresden (Germany)
 
 Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
-Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
-Copyright (C) 2019-2024 Udo Steinberg, BedRock Systems, Inc.
-Copyright (C) 2012-2024 Alexander Boettcher, Genode Labs GmbH.
+Copyright (C) 2014      Udo Steinberg, FireEye, Inc.
+Copyright (C) 2019-2025 Udo Steinberg, BlueRock Security, Inc.
+Copyright (C) 2012-2025 Alexander Boettcher, Genode Labs GmbH.
 
 NOVA is free software: you can redistribute it and/or modify it
 under the terms of the GNU General Public License version 2 as
@@ -129,7 +127,7 @@ Credits
 
 This NOVA version is a fork to fit the requirements of the Genode OS
 framework. It is derived from the upstream version developed by Udo
-Steinberg working for BedRock Systems, Inc. Additionally, this version
+Steinberg working for BlueRock Security, Inc. Additionally, this version
 contains adjusted commits of a fork called Hedron developed by
 Cyberus Technology GmbH.
 

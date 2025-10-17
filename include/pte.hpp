@@ -5,7 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
- * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2015-2025 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -23,6 +23,7 @@
 
 #include "atomic.hpp"
 #include "buddy.hpp"
+#include "memattr.hpp"
 #include "x86.hpp"
 
 template <typename P, typename E, unsigned L, unsigned B, bool F, bool LEV>
@@ -40,7 +41,15 @@ class Pte
         inline mword attr() const { return static_cast<mword>(val) & PAGE_MASK; }
 
         ALWAYS_INLINE
-        inline Paddr addr() const { return static_cast<Paddr>(val) & ~((1UL << order()) - 1); }
+        inline Paddr addr() const
+        {
+            auto emask = Memattr::obits ? ~enc_mask() : ~0UL;
+
+            return emask & (static_cast<Paddr>(val) & ~((1UL << order()) - 1));
+        }
+
+        ALWAYS_INLINE
+        inline mword enc_mask() const { return ((1UL << Memattr::kbits) - 1) << Memattr::obits; }
 
         ALWAYS_INLINE
         inline mword order() const { return PAGE_BITS; }
@@ -104,7 +113,7 @@ class Pte
 
         size_t lookup (E, Paddr &, mword &);
 
-        bool update (Quota &quota, E, mword, E, E, Type = TYPE_UP);
+        bool update (Quota &quota, E, mword, E, E, Memattr, Type = TYPE_UP);
 
         void clear (Quota &quota, bool (*) (Paddr, mword, unsigned) = nullptr, bool (*) (unsigned, mword) = nullptr);
 

@@ -5,7 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
- * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2015-2025 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -120,7 +120,7 @@ class Hpt : public Pte<Hpt, mword, PTE_LEV, PTE_BPL, false, false>
 
         Paddr replace (Quota &quota, mword, mword);
 
-        static void *remap (Quota &quota, Paddr);
+        static void *remap (Quota &quota, Paddr, Memattr = Memattr::ram());
 
         static bool dest_hpt (Paddr p, mword, unsigned) { return (p != reinterpret_cast<Paddr>(&FRAME_0) && p != reinterpret_cast<Paddr>(&FRAME_1)); }
         static bool iter_hpt_lev(unsigned l, mword v)

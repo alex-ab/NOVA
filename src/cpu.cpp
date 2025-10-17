@@ -31,6 +31,7 @@
 #include "mca.hpp"
 #include "memattr.hpp"
 #include "msr.hpp"
+#include "mtrr.hpp"
 #include "pconfig.hpp"
 #include "pd.hpp"
 #include "signature.hpp"
@@ -299,6 +300,20 @@ void Cpu::setup_msr()
                     trace(0, "TME-MK programming failed, key %d", i + 1);
             }
         }
+
+        auto const act { Msr::read (Msr::Reg64::IA32_TME_ACTIVATE) };
+
+        bool const tme_mk = feature (Feature::PCONFIG) && Memattr::crypt;
+        bool const tme_on = act & (1u <<  1);
+        bool const tme_bypass_id0 = act & (1u << 31);
+
+        trace(0, "TMEE: encryption: %s, bypass keyID0: %s, algorithm: %llx%s",
+              tme_on ? "on" : "off", tme_bypass_id0 ? "on" : "off",
+              tme_mk ? Memattr::crypt : (act >> 4) & 0xf,
+              tme_mk ? ", TME-MK" : "");
+
+        Hip::tme(tme_on ? uint16_t(Memattr::kimax) + 1 : 0,
+                 uint16_t(tme_mk ? Memattr::crypt : ((act >> 4) & 0xf)));
     }
 }
 
@@ -369,6 +384,9 @@ void Cpu::init(bool resume)
         Pd::kern.Space_mem::insert (Pd::kern.quota, HV_GLOBAL_CPUS + id * PAGE_SIZE, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P, phys);
         Hpt::ord = min (Hpt::ord, feature (GB_PAGES) ? 26UL : 17UL);
     }
+
+    if (!bsp)
+        Mtrr::setup();
 
     setup_msr();
 

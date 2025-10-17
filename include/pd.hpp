@@ -136,15 +136,15 @@ class Pd : public Kobject, public Refcount, public Space_mem, public Space_pio, 
         }
 
         template <typename>
-        bool delegate (Pd *, mword, mword, mword, mword, mword = 0, char const * = nullptr);
+        bool delegate (Pd *, mword, mword, mword, mword, Memattr, mword = 0, char const * = nullptr);
 
         template <typename>
         void revoke (mword, mword, mword, bool, bool);
 
-        void xfer_items (Pd *, Crd, Crd, Xfer *, Xfer *, unsigned long);
+        void xfer_items (Pd *, Crd, Crd, Xfer *, Xfer *, unsigned long, Memattr);
 
         void xlt_crd (Pd *, Crd, Crd &);
-        void del_crd (Pd *, Crd, Crd &, mword = 0, mword = 0);
+        void del_crd (Pd *, Crd, Crd &, mword = 0, mword = 0, Memattr ma = Memattr::ram());
         void rev_crd (Crd, bool, bool, bool);
 
         void assign_rid(uint16 r);

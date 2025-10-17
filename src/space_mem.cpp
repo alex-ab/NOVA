@@ -5,7 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
- * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2015-2025 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -41,17 +41,17 @@ void Space_mem::init (Quota &quota, unsigned cpu)
     }
 }
 
-bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
+bool Space_mem::update (Quota_guard &quota, Mdb &mdb, Memattr const ma, mword const r)
 {
-    assert (this == mdb->space && this != &Pd::kern);
+    assert (this == mdb.space && this != &Pd::kern);
 
-    Lock_guard <Spinlock> guard (mdb->node_lock);
+    Lock_guard <Spinlock> guard (mdb.node_lock);
 
-    Paddr p = mdb->node_phys << PAGE_BITS;
-    mword b = mdb->node_base << PAGE_BITS;
-    mword o = mdb->node_order;
-    mword a = mdb->node_attr & ~r;
-    mword s = mdb->node_sub;
+    Paddr p = mdb.node_phys << PAGE_BITS;
+    mword b = mdb.node_base << PAGE_BITS;
+    mword o = mdb.node_order;
+    mword a = mdb.node_attr & ~r;
+    mword s = mdb.node_sub;
 
     bool f = false;
 
@@ -63,7 +63,7 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
                 return false;
             }
 
-            f |= dpt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), a, r ? Dpt::TYPE_DN : Dpt::TYPE_UP);
+            f |= dpt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), a, ma, r ? Dpt::TYPE_DN : Dpt::TYPE_UP);
         }
 
         if (Dpt::force_flush)
@@ -78,7 +78,7 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
                 return false;
             }
 
-            f |= ipt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Ipt::hw_attr(a), r ? Ipt::TYPE_DN : Ipt::TYPE_UP);
+            f |= ipt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Ipt::hw_attr(a), ma, r ? Ipt::TYPE_DN : Ipt::TYPE_UP);
         }
     }
 
@@ -91,7 +91,7 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
                     return false;
                 }
 
-                npt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Hpt::hw_attr (a), r ? Hpt::TYPE_DN : Hpt::TYPE_UP);
+                npt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Hpt::hw_attr (a), ma, r ? Hpt::TYPE_DN : Hpt::TYPE_UP);
             }
         } else {
             mword ord = min (o, Ept::ord);
@@ -101,7 +101,7 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
                     return false;
                 }
 
-                ept.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Ept::hw_attr (a, mdb->node_type), r ? Ept::TYPE_DN : Ept::TYPE_UP);
+                ept.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Ept::hw_attr (a, mdb.node_type), ma, r ? Ept::TYPE_DN : Ept::TYPE_UP);
             }
         }
         if (r)
@@ -114,9 +114,9 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
     }
 
 
-    if ((mdb->node_base >= USER_ADDR >> PAGE_BITS) ||
-        (mdb->node_base + (1UL << o) > USER_ADDR >> PAGE_BITS) ||
-        (mdb->node_base + (1UL << o) <= mdb->node_base))
+    if ((mdb.node_base >= USER_ADDR >> PAGE_BITS) ||
+        (mdb.node_base + (1UL << o) > USER_ADDR >> PAGE_BITS) ||
+        (mdb.node_base + (1UL << o) <= mdb.node_base))
         return false;
 
     mword ord = min (o, Hpt::ord);
@@ -127,7 +127,7 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
             return f;
         }
 
-        f |= hpt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Hpt::hw_attr (a), r ? Hpt::TYPE_DN : Hpt::TYPE_UP);
+        f |= hpt.update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Hpt::hw_attr (a), ma, r ? Hpt::TYPE_DN : Hpt::TYPE_UP);
     }
 
     if (r || f) {
@@ -142,7 +142,7 @@ bool Space_mem::update (Quota_guard &quota, Mdb *mdb, mword r)
                     return (r || f);
                 }
 
-                loc[j].update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Hpt::hw_attr (a), Hpt::TYPE_DF);
+                loc[j].update (quota, b + i * (1UL << (ord + PAGE_BITS)), ord, p + i * (1UL << (ord + PAGE_BITS)), Hpt::hw_attr (a), ma, Hpt::TYPE_DF);
             }
         }
 

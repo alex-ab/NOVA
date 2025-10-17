@@ -54,4 +54,6 @@ class Mtrr : public List<Mtrr>
 
         INIT
         static unsigned memtype (uint64, uint64 &);
+
+        static void setup();
 };

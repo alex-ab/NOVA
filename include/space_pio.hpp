@@ -52,7 +52,7 @@ class Space_pio : public Space
 
         Paddr walk (Quota &quota, bool = false, mword = 0);
 
-        bool update (Quota &quota, Mdb *, mword = 0);
+        bool update (Quota &quota, Mdb &, Memattr, mword = 0);
 
         static void page_fault (mword, mword);
 

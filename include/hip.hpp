@@ -83,7 +83,8 @@ class Hip
         uint32  cfg_page;               // 0x28
         uint32  cfg_utcb;               // 0x2c
         uint32  freq_tsc;               // 0x30
-        uint32  reserved;               // 0x34
+        uint16  tme_kmax;               // 0x34
+        uint16  tme_algo;               // 0x36
         Hip_cpu cpu_desc[NUM_CPU];
         Hip_mem mem_desc[];
 
@@ -136,6 +137,12 @@ class Hip
         static bool cpu_online (unsigned long cpu)
         {
             return cpu < NUM_CPU && hip()->cpu_desc[cpu].flags & 1;
+        }
+
+        static void tme(uint16_t keys, uint16_t algo)
+        {
+            hip()->tme_kmax = keys;
+            hip()->tme_algo = algo;
         }
 
         INIT

@@ -4,7 +4,7 @@
  * Advanced Vector Extensions (AVX)
  *
  * Copyright (C) 2019 Julian Stecklina, Cyberus Technology GmbH.
- * Copyright (C) 2019-2024 Udo Steinberg, BedRock Systems, Inc.
+ * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
  * Copyright (C) 2024 Alexander Boettcher
  *
  * This file is part of the NOVA microhypervisor.

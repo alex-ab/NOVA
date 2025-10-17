@@ -5,7 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
- * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2015-2025 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -63,7 +63,7 @@ Paddr Hpt::replace (Quota &quota, mword v, mword p)
     return e->addr();
 }
 
-void *Hpt::remap (Quota &quota, Paddr phys)
+void *Hpt::remap (Quota &quota, Paddr phys, Memattr ma)
 {
     Hptp hpt (current());
 
@@ -75,12 +75,12 @@ void *Hpt::remap (Quota &quota, Paddr phys)
 
     Paddr old; mword attr;
     if (hpt.lookup (SPC_LOCAL_REMAP, old, attr)) {
-        hpt.update (quota, SPC_LOCAL_REMAP,        bpl(), 0, 0, Hpt::TYPE_DN); flush (SPC_LOCAL_REMAP);
-        hpt.update (quota, SPC_LOCAL_REMAP + size, bpl(), 0, 0, Hpt::TYPE_DN); flush (SPC_LOCAL_REMAP + size);
+        hpt.update (quota, SPC_LOCAL_REMAP,        bpl(), 0, 0, ma, Hpt::TYPE_DN); flush (SPC_LOCAL_REMAP);
+        hpt.update (quota, SPC_LOCAL_REMAP + size, bpl(), 0, 0, ma, Hpt::TYPE_DN); flush (SPC_LOCAL_REMAP + size);
     }
 
-    hpt.update (quota, SPC_LOCAL_REMAP,        bpl(), phys,        HPT_W | HPT_P);
-    hpt.update (quota, SPC_LOCAL_REMAP + size, bpl(), phys + size, HPT_W | HPT_P);
+    hpt.update (quota, SPC_LOCAL_REMAP,        bpl(), phys,        HPT_W | HPT_P, ma);
+    hpt.update (quota, SPC_LOCAL_REMAP + size, bpl(), phys + size, HPT_W | HPT_P, ma);
 
     return reinterpret_cast<void *>(SPC_LOCAL_REMAP + offset);
 }

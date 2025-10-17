@@ -77,12 +77,17 @@ void Ec::delegate()
 
     bool user = C || ((dst->cont == ret_user_sysexit) || (dst->cont == xcpu_return));
 
-    dst->pd->xfer_items (src->pd,
-                         user ? dst->utcb->xlt : Crd (0),
-                         user ? dst->utcb->del : Crd (Crd::MEM, (dst->cont == ret_user_iret ? dst->regs.cr2 : dst->regs.nst_fault) >> PAGE_BITS),
-                         src->utcb->xfer(),
+    Crd xlt = Crd(user ? dst->utcb->xlt : Crd (0));
+    Crd del = Crd(user ? dst->utcb->del : Crd (Crd::MEM, (dst->cont == ret_user_iret ? dst->regs.cr2 : dst->regs.nst_fault) >> PAGE_BITS));
+
+    if (xlt.type() == Crd::MEM || del.type() == Crd::MEM) {
+        trace (0, "unsupported delegation");
+        return;
+    }
+
+    dst->pd->xfer_items (src->pd, xlt, del, src->utcb->xfer(),
                          user ? dst->utcb->xfer() : nullptr,
-                         src->utcb->ti());
+                         src->utcb->ti(), Memattr::ram());
 
     if (Cpu::hazard & HZD_OOM) {
         if (dst->pd->quota.hit_limit())
@@ -707,12 +712,25 @@ void Ec::sys_misc()
         Pd * pd_dst = static_cast<Pd *>(obj_dst);
         Pd * pd_snd = static_cast<Pd *>(obj_snd);
 
+        Memattr ma = Memattr::ram();
+
+        auto enc_key_id = s->enc_key();
+
+        if (pd_snd == &Pd::root && Memattr::kimax) {
+
+            if (enc_key_id >= Memattr::kimax)
+                sys_finish<Sys_regs::BAD_PAR>();
+
+            ma = Memattr(Memattr::Keyid(enc_key_id), Memattr::Cache::MEM_WB);
+        }
+
         pd_dst->xfer_items (pd_snd,
                             Crd (0),
                             s->crd(),
                             current->utcb->xfer(),
                             nullptr,
-                            current->utcb->ti());
+                            current->utcb->ti(),
+                            ma);
 
         if (Cpu::hazard & HZD_OOM) {
            Cpu::hazard &= ~HZD_OOM;

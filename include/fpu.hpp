@@ -7,7 +7,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
- * Copyright (C) 2019-2024 Udo Steinberg, BedRock Systems, Inc.
+ * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
  *
  * Copyright (C) 2018-2024 Alexander Boettcher
  *

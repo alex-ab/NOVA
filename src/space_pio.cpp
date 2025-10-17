@@ -49,18 +49,18 @@ void Space_pio::update (Quota &quota, bool host, mword idx, mword attr)
         Atomic::set_mask (*m, idx_to_mask (idx));
 }
 
-bool Space_pio::update (Quota &quota, Mdb *mdb, mword r)
+bool Space_pio::update (Quota &quota, Mdb &mdb, Memattr, mword r)
 {
-    assert (this == mdb->space && this != &Pd::kern);
+    assert (this == mdb.space && this != &Pd::kern);
 
-    Lock_guard <Spinlock> guard (mdb->node_lock);
+    Lock_guard <Spinlock> guard (mdb.node_lock);
 
-    if (mdb->node_sub & 2)
-        for (unsigned long i = 0; i < (1UL << mdb->node_order); i++)
-            update (quota, false, mdb->node_base + i, mdb->node_attr & ~r);
+    if (mdb.node_sub & 2)
+        for (unsigned long i = 0; i < (1UL << mdb.node_order); i++)
+            update (quota, false, mdb.node_base + i, mdb.node_attr & ~r);
 
-    for (unsigned long i = 0; i < (1UL << mdb->node_order); i++)
-        update (quota, true, mdb->node_base + i, mdb->node_attr & ~r);
+    for (unsigned long i = 0; i < (1UL << mdb.node_order); i++)
+        update (quota, true, mdb.node_base + i, mdb.node_attr & ~r);
 
     return false;
 }

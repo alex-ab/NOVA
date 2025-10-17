@@ -5,7 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
- * Copyright (C) 2020 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2020-2025 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -83,9 +83,9 @@ class Space_mem : public Space
         }
 
         ALWAYS_INLINE
-        inline void insert (Quota &quota, mword virt, unsigned o, mword attr, Paddr phys)
+        inline void insert (Quota &quota, mword virt, unsigned o, mword attr, Paddr phys, Memattr ma = Memattr::ram())
         {
-            hpt.update (quota, virt, o, phys, attr);
+            hpt.update (quota, virt, o, phys, attr, ma);
         }
 
         ALWAYS_INLINE
@@ -101,7 +101,7 @@ class Space_mem : public Space
 
         bool remove_utcb (mword);
 
-        bool update (Quota_guard &quota, Mdb *, mword = 0);
+        bool update (Quota_guard &quota, Mdb &, Memattr, mword = 0);
 
         static void shootdown(Pd *);
 

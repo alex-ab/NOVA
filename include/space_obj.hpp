@@ -52,7 +52,7 @@ class Space_obj : public Space
 
         Paddr walk (Quota &quota, mword, bool &);
 
-        bool update (Quota &quota, Mdb *, mword = 0);
+        bool update (Quota &quota, Mdb &, Memattr, mword = 0);
 
         static void page_fault (mword, mword);
 

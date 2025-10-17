@@ -173,6 +173,9 @@ class Sys_misc : public Sys_regs
 
         ALWAYS_INLINE
         inline mword sleep_type_b() const { return ARG_3; }
+
+        ALWAYS_INLINE
+        inline mword enc_key() const { return ARG_4; }
 };
 
 class Sys_reply : public Sys_regs

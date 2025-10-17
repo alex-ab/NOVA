@@ -81,12 +81,12 @@ mword kern_ptab_setup()
     // Allocate and map cpu page
     hpt.update (Pd::kern.quota, CPU_LOCAL_DATA, 0,
                 Buddy::ptr_to_phys (Buddy::allocator.alloc (0, Pd::kern.quota, Buddy::FILL_0)),
-                Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P);
+                Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P, Memattr::ram());
 
     // Allocate and map kernel stack
     hpt.update (Pd::kern.quota, CPU_LOCAL_STCK, 0,
                 Buddy::ptr_to_phys (Buddy::allocator.alloc (0, Pd::kern.quota, Buddy::FILL_0)),
-                Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P);
+                Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P, Memattr::ram());
 
     // Sync kernel code and data
     hpt.sync_master_range (Pd::kern.quota, LINK_ADDR, CPU_LOCAL);

@@ -34,9 +34,23 @@ void Mtrr::init()
     count = Msr::read (Msr::IA32_MTRR_CAP) & 0xff;
     dtype = Msr::read (Msr::IA32_MTRR_DEF_TYPE) & 0xff;
 
+    Mtrr::setup();
+
     for (unsigned i = 0; i < count; i++)
-        new (Pd::kern.quota) Mtrr (Msr::read (Msr::Reg64 (Msr::IA32_MTRR_PHYS_BASE + 2 * i)),
-                                   Msr::read (Msr::Reg64 (Msr::IA32_MTRR_PHYS_MASK + 2 * i)));
+        new (Pd::kern.quota) Mtrr (Msr::read (Msr::Arr64::IA32_MTRR_PHYS_BASE, 2, i),
+                                   Msr::read (Msr::Arr64::IA32_MTRR_PHYS_MASK, 2, i));
+}
+
+void Mtrr::setup()
+{
+    count = Msr::read (Msr::IA32_MTRR_CAP) & 0xff;
+
+    auto const mask { BIT64 (Memattr::obits) - 1 };
+
+    for (unsigned i = 0; i < count; i++) {
+        auto m = Msr::read (Msr::Arr64::IA32_MTRR_PHYS_MASK, 2, i);
+        Msr::write (Msr::Arr64::IA32_MTRR_PHYS_MASK, 2, i, m & mask);
+    }
 }
 
 unsigned Mtrr::memtype (uint64 phys, uint64 &next)

@@ -5,7 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
- * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2015-2025 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -77,7 +77,7 @@ size_t Pte<P,E,L,B,F,V>::lookup (E v, Paddr &p, mword &a)
 }
 
 template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
-bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, E a, Type t)
+bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, E a, Memattr ma, Type t)
 {
     unsigned long l = o / B, n = 1UL << o % B, s;
 
@@ -88,6 +88,7 @@ bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, E a, Type t)
 
     if (a) {
         p |= P::order (o % B) | P::pte_s(l) | a;
+        p |= ma.key_encode<E>();
         s = 1UL << (l * B + PAGE_BITS);
     } else
         p = s = 0;
@@ -98,6 +99,12 @@ bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, E a, Type t)
 
         if (!e[i].val)
             continue;
+
+        /* keep enc key on demotion */
+        if (!l && a && e[i].present() && ma.key_decode(e[i].val) != Memattr::key_decode(p)) {
+            Memattr tmp(ma.key_decode(e[i].val), Memattr::Cache::UNUSED);
+            p = (p & ~enc_mask()) | tmp.key_encode<E>();
+        }
 
         if (l && e[i].val != p)
             flush_tlb = true;

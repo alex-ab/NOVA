@@ -1,7 +1,7 @@
 /*
  * Generic Macros
  *
- * Copyright (C) 2019-2024 Udo Steinberg, BedRock Systems, Inc.
+ * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
  *
  * This file is part of the NOVA microhypervisor.
  *

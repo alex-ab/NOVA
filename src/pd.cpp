@@ -5,7 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
- * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2015-2025 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -71,7 +71,7 @@ static void free_mdb(Rcu_elem * e)
 }
 
 template <typename S>
-bool Pd::delegate (Pd *snd, mword const snd_base, mword const rcv_base, mword const ord, mword const attr, mword const sub, char const * deltype)
+bool Pd::delegate (Pd *snd, mword const snd_base, mword const rcv_base, mword const ord, mword const attr, Memattr ma, mword const sub, char const * deltype)
 {
     bool s = false;
 
@@ -112,10 +112,10 @@ bool Pd::delegate (Pd *snd, mword const snd_base, mword const rcv_base, mword co
             continue;
         }
 
-        s |= S::update (qg, node);
+        s |= S::update (qg, *node, ma);
 
         if (Cpu::hazard & HZD_OOM) {
-            s |= S::update (qg, node, attr);
+            s |= S::update (qg, *node, ma, attr);
             node->demote_node (attr);
             if (node->remove_node() && S::tree_remove (node))
                 Rcu::call (node);
@@ -133,6 +133,7 @@ template <typename S>
 void Pd::revoke (mword const base, mword const ord, mword const attr, bool self, bool kim)
 {
     Mdb *mdb;
+
     for (mword addr = base; (mdb = S::tree_lookup (addr, true)); addr = mdb->node_base + (1UL << mdb->node_order)) {
 
         mword o, p, b = base;
@@ -146,7 +147,7 @@ void Pd::revoke (mword const base, mword const ord, mword const attr, bool self,
                 if (mdb->node_sub & 0x1)
                     Cpu::hazard |= HZD_IOMMU;
 
-                static_cast<S *>(mdb->space)->update (qg, mdb, 0x1f);
+                static_cast<S *>(mdb->space)->update (qg, *mdb, { }, 0x1f);
                 mdb->demote_node (0x1f);
             }
 
@@ -177,7 +178,7 @@ void Pd::revoke (mword const base, mword const ord, mword const attr, bool self,
                     Cpu::hazard |= HZD_IOMMU;
 
                 Quota_guard qg(this->quota);
-                static_cast<S *>(node->space)->update (qg, node, attr);
+                static_cast<S *>(node->space)->update (qg, *node, { }, attr);
                 node->demote_node (attr);
             }
 
@@ -299,7 +300,7 @@ void Pd::xlt_crd (Pd *pd, Crd xlt, Crd &crd)
     crd = Crd (0);
 }
 
-void Pd::del_crd (Pd *pd, Crd del, Crd &crd, mword sub, mword hot)
+void Pd::del_crd (Pd *pd, Crd del, Crd &crd, mword sub, mword hot, Memattr const ma)
 {
     Crd::Type st = crd.type(), rt = del.type();
     bool s = false;
@@ -316,19 +317,19 @@ void Pd::del_crd (Pd *pd, Crd del, Crd &crd, mword sub, mword hot)
         case Crd::MEM:
             o = clamp (sb, rb, so, ro, hot);
             trace (TRACE_DEL, "DEL MEM PD:%p->%p SB:%#010lx RB:%#010lx O:%#04lx A:%#lx", pd, this, sb, rb, o, a);
-            s = delegate<Space_mem>(pd, sb, rb, o, a, sub, "MEM");
+            s = delegate<Space_mem>(pd, sb, rb, o, a, ma, sub, "MEM");
             break;
 
         case Crd::PIO:
             o = clamp (sb, rb, so, ro);
             trace (TRACE_DEL, "DEL I/O PD:%p->%p SB:%#010lx RB:%#010lx O:%#04lx A:%#lx", pd, this, rb, rb, o, a);
-            delegate<Space_pio>(pd, rb, rb, o, a, sub, "PIO");
+            delegate<Space_pio>(pd, rb, rb, o, a, ma, sub, "PIO");
             break;
 
         case Crd::OBJ:
             o = clamp (sb, rb, so, ro, hot);
             trace (TRACE_DEL, "DEL OBJ PD:%p->%p SB:%#010lx RB:%#010lx O:%#04lx A:%#lx", pd, this, sb, rb, o, a);
-            s = delegate<Space_obj>(pd, sb, rb, o, a, 0, "OBJ");
+            s = delegate<Space_obj>(pd, sb, rb, o, a, ma, 0, "OBJ");
             break;
     }
 
@@ -380,7 +381,7 @@ void Pd::rev_crd (Crd crd, bool self, bool preempt, bool kim)
         shootdown(this);
 }
 
-void Pd::xfer_items (Pd *src, Crd xlt, Crd del, Xfer *s, Xfer *d, unsigned long ti)
+void Pd::xfer_items (Pd *src, Crd xlt, Crd del, Xfer *s, Xfer *d, unsigned long ti, Memattr const ma)
 {
     mword set_as_del;
 
@@ -405,8 +406,11 @@ void Pd::xfer_items (Pd *src, Crd xlt, Crd del, Xfer *s, Xfer *d, unsigned long 
                 [[fallthrough]];
 
             case 1: {
+
                 bool r = src == &root && s->flags() & 0x800;
-                del_crd (r? &kern : src, del, crd, (s->flags() >> 8) & (r ? 7 : 3), s->hotspot());
+
+                del_crd (r? &kern : src, del, crd, (s->flags() >> 8) & (r ? 7 : 3), s->hotspot(), ma);
+
                 if (Cpu::hazard & HZD_OOM)
                     return;
                 break;

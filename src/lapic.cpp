@@ -5,10 +5,10 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
- * Copyright (C) 2014 Udo Steinberg, FireEye, Inc.
- * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
+ * Copyright (C) 2014      Udo Steinberg, FireEye, Inc.
+ * Copyright (C) 2019-2025 Udo Steinberg, BlueRock Security, Inc.
  *
- * Copyright (C) 2015-2024 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2015-2025 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -42,7 +42,7 @@ void Lapic::init_cpuid()
     auto const apic_base { static_cast<mword>(Msr::read (Msr::Reg64::IA32_APIC_BASE)) };
 
     Pd::kern.Space_mem::delreg (Pd::kern.quota, Pd::kern.mdb_cache, apic_base & ~PAGE_MASK);
-    Hptp (Hpt::current()).update (Pd::kern.quota, CPU_LOCAL_APIC, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, apic_base & ~PAGE_MASK);
+    Hptp (Hpt::current()).update (Pd::kern.quota, CPU_LOCAL_APIC, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, apic_base & ~PAGE_MASK, Memattr::ram());
 
     auto apic_id = (apic_base & BIT (10)) ? read_x2apic (Reg32::IDR)
                                           : read_legacy (Reg32::IDR) >> 24;

@@ -471,7 +471,7 @@ void Ec::root_invoke()
             mword size = align_up (p->f_size, PAGE_SIZE);
 
             for (unsigned long o; size; size -= 1UL << o, phys += 1UL << o, virt += 1UL << o)
-                Pd::current->delegate<Space_mem>(&Pd::kern, phys >> PAGE_BITS, virt >> PAGE_BITS, (o = min (max_order (phys, size), max_order (virt, size))) - PAGE_BITS, attr);
+                Pd::current->delegate<Space_mem>(&Pd::kern, phys >> PAGE_BITS, virt >> PAGE_BITS, (o = min (max_order (phys, size), max_order (virt, size))) - PAGE_BITS, attr, Memattr::ram());
         }
     }
 
@@ -482,7 +482,7 @@ void Ec::root_invoke()
         mword size = align_up (PAGE_H_SIZE, PAGE_SIZE);
 
         for (unsigned long o; size; size -= 1UL << o, phys += 1UL << o, virt += 1UL << o)
-            Pd::current->delegate<Space_mem>(&Pd::kern, phys >> PAGE_BITS, virt >> PAGE_BITS, (o = min (max_order (phys, size), max_order (virt, size))) - PAGE_BITS, 1);
+            Pd::current->delegate<Space_mem>(&Pd::kern, phys >> PAGE_BITS, virt >> PAGE_BITS, (o = min (max_order (phys, size), max_order (virt, size))) - PAGE_BITS, 1, Memattr::ram());
     }
 
     Space_obj::insert_root (Pd::kern.quota, Pd::current);

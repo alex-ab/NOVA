@@ -62,11 +62,11 @@ size_t Space_obj::lookup (mword idx, Capability &cap)
     return 1;
 }
 
-bool Space_obj::update (Quota &quota, Mdb *mdb, mword r)
+bool Space_obj::update (Quota &quota, Mdb &mdb, Memattr, mword r)
 {
-    assert (this == mdb->space && this != &Pd::kern);
-    Lock_guard <Spinlock> guard (mdb->node_lock);
-    return update (quota, mdb->node_base, Capability (reinterpret_cast<Kobject *>(mdb->node_phys), mdb->node_attr & ~r));
+    assert (this == mdb.space && this != &Pd::kern);
+    Lock_guard <Spinlock> guard (mdb.node_lock);
+    return update (quota, mdb.node_base, Capability (reinterpret_cast<Kobject *>(mdb.node_phys), mdb.node_attr & ~r));
 }
 
 bool Space_obj::insert_root (Quota &quota, Kobject *obj)
