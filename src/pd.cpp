@@ -407,6 +407,11 @@ void Pd::xfer_items (Pd *src, Crd xlt, Crd del, Xfer *s, Xfer *d, unsigned long 
 
             case 1: {
 
+                if (ma.keyid()) {
+                   trace (0, "DEL SB MEM SB:%#010lx RB:%#010lx enc_key_id=%u",
+                          crd.base(), del.base(), ma.keyid());
+                }
+
                 bool r = src == &root && s->flags() & 0x800;
 
                 del_crd (r? &kern : src, del, crd, (s->flags() >> 8) & (r ? 7 : 3), s->hotspot(), ma);

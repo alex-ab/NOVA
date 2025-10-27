@@ -76,6 +76,8 @@ size_t Pte<P,E,L,B,F,V>::lookup (E v, Paddr &p, mword &a)
     }
 }
 
+#include <stdio.hpp>
+
 template <typename P, typename E, unsigned L, unsigned B, bool F, bool V>
 bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, E a, Memattr ma, Type t)
 {
@@ -104,6 +106,7 @@ bool Pte<P,E,L,B,F,V>::update (Quota &quota, E v, mword o, E p, E a, Memattr ma,
         if (!l && a && e[i].present() && ma.key_decode(e[i].val) != Memattr::key_decode(p)) {
             Memattr tmp(ma.key_decode(e[i].val), Memattr::Cache::UNUSED);
             p = (p & ~enc_mask()) | tmp.key_encode<E>();
+            trace (0, "restrict demotion %llx", uint64_t(p));
         }
 
         if (l && e[i].val != p)
