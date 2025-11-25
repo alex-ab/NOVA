@@ -129,8 +129,8 @@ void Uefi::init (handle img, Sys_table *sys, Info *info)
             info->rsdp = reinterpret_cast<uintptr_t>(cfg[i].table);
         if (cfg[i].uuid == Uuid { 0x8868e871, 0xe4f1, 0x11d3, { 0xbc, 0x22, 0x00, 0x80, 0xc7, 0x3c, 0x88, 0x81 }})  // RSDP (2.0)
             info->rsdp = reinterpret_cast<uintptr_t>(cfg[i].table);
-        if (cfg[i].uuid == Uuid { 0x1878f400, 0xdcdb, 0x4f5e, { 0x8b, 0x2d, 0x85, 0x71, 0x4a, 0xca, 0x2c, 0x90 }})  // PPAM Manifest
-            info->ppam = reinterpret_cast<uintptr_t>(cfg[i].table);
+//        if (cfg[i].uuid == Uuid { 0x1878f400, 0xdcdb, 0x4f5e, { 0x8b, 0x2d, 0x85, 0x71, 0x4a, 0xca, 0x2c, 0x90 }})  // PPAM Manifest
+//            info->ppam = reinterpret_cast<uintptr_t>(cfg[i].table);
         if (cfg[i].uuid == Uuid { 0xb1b621d5, 0xf19c, 0x41a5, { 0x83, 0x0b, 0xd9, 0x15, 0x2c, 0x69, 0xaa, 0xe0 }})  // DTBP
             info->fdtp = reinterpret_cast<uintptr_t>(cfg[i].table);
     }
