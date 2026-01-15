@@ -118,9 +118,9 @@ class Pd : public Kobject, public Refcount, public Space_mem, public Space_pio, 
         }
 
         ALWAYS_INLINE
-        static inline Pd *remote (unsigned c)
+        static inline Pd *remote (cpu_t c)
         {
-            return *reinterpret_cast<volatile typeof current *>(reinterpret_cast<mword>(&current) - CPU_LOCAL_DATA + HV_GLOBAL_CPUS + c * PAGE_SIZE);
+            return *reinterpret_cast<volatile typeof current *>(Kmem::loc_to_glb(c, &current));
         }
 
         ALWAYS_INLINE

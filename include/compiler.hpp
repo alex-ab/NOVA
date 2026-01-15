@@ -5,6 +5,7 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012-2013 Udo Steinberg, Intel Corporation.
+ * Copyright (C) 2019-2025 Udo Steinberg, BlueRock Security, Inc.
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -20,49 +21,39 @@
 
 #pragma once
 
-#define STRING(x...) #x
-#define EXPAND(x) STRING(x)
+#define STRING(...) #__VA_ARGS__
+#define EXPAND(X) STRING(X)
 
 #if defined(__GNUC__)
 
-        #define COMPILER            "gcc " __VERSION__
+        #define COMPILER                "gcc " __VERSION__
 
     #if defined(__GNUC_PATCHLEVEL__)
-        #define COMPILER_STRING     "gcc " EXPAND (__GNUC__) "." EXPAND (__GNUC_MINOR__) "." EXPAND (__GNUC_PATCHLEVEL__)
-        #define COMPILER_VERSION    (__GNUC__ * 100 + __GNUC_MINOR__ * 10 + __GNUC_PATCHLEVEL__)
+        #define COMPILER_STRING         "gcc " EXPAND (__GNUC__) "." EXPAND (__GNUC_MINOR__) "." EXPAND (__GNUC_PATCHLEVEL__)
+        #define COMPILER_VERSION        (__GNUC__ * 100 + __GNUC_MINOR__ * 10 + __GNUC_PATCHLEVEL__)
     #else
-        #define COMPILER_STRING     "gcc " EXPAND (__GNUC__) "." EXPAND (__GNUC_MINOR__)
-        #define COMPILER_VERSION    (__GNUC__ * 100 + __GNUC_MINOR__ * 10)
+        #define COMPILER_STRING         "gcc " EXPAND (__GNUC__) "." EXPAND (__GNUC_MINOR__)
+        #define COMPILER_VERSION        (__GNUC__ * 100 + __GNUC_MINOR__ * 10)
     #endif
 
-    #if (COMPILER_VERSION < 430)
-        #define COLD
-        #define HOT
-    #else
-        #define COLD                __attribute__((cold))
-        #define HOT                 __attribute__((hot))
+    #ifndef __has_cpp_attribute
+        #define __has_cpp_attribute(X)  0
     #endif
 
-    #if (COMPILER_VERSION < 450)
-        #define UNREACHED           __builtin_trap()
-    #else
-        #define UNREACHED           __builtin_unreachable()
-    #endif
+        #define COLD                    __attribute__((cold))
+        #define HOT                     __attribute__((hot))
 
-    #if (COMPILER_VERSION < 460) || !defined(__GXX_EXPERIMENTAL_CXX0X__)
-        #define nullptr             0
-    #endif
-
-        #define ALIGNED(X)          __attribute__((aligned(X)))
-        #define ALWAYS_INLINE       __attribute__((always_inline))
-        #define CPULOCAL            __attribute__((section (".cpulocal,\"w\",@nobits#")))
-        #define CPULOCAL_HOT        __attribute__((section (".cpulocal.hot,\"w\",@nobits#")))
-        #define FORMAT(X,Y)         __attribute__((format (printf, (X),(Y))))
+        #define ALIGNED(X)              __attribute__((aligned(X)))
+        #define ALWAYS_INLINE           __attribute__((always_inline))
+        #define CPULOCAL                __attribute__((section (".cpulocal,\"w\",@nobits#")))
+        #define CPULOCAL_HOT            __attribute__((section (".cpulocal.hot,\"w\",@nobits#")))
+        #define EFICALL                 __attribute__((ms_abi))
         #define INIT                __attribute__((section (".init")))
         #define INITDATA            __attribute__((section (".initdata")))
-        #define INIT_PRIORITY(X)    __attribute__((init_priority((X))))
-        #define NOINLINE            __attribute__((noinline))
-        #define NONNULL             __attribute__((nonnull))
+        #define FORMAT(X,Y)             __attribute__((format (printf, (X),(Y))))
+        #define INIT_PRIORITY(X)        __attribute__((init_priority((X))))
+        #define NOINLINE                __attribute__((noinline))
+        #define NONNULL                 __attribute__((nonnull))
         #define NORETURN            __attribute__((noreturn))
         #define PACKED              __attribute__((packed))
         #define REGPARM(X)          __attribute__((regparm(X)))
@@ -72,9 +63,15 @@
         #define EXPECT_FALSE(X)     __builtin_expect(!!(X), 0)
         #define EXPECT_TRUE(X)      __builtin_expect(!!(X), 1)
 
+        #define SEC_DATA                __attribute__((section (".data"), used))
+        #define SEC_HASH                __attribute__((section (".text"), used))
+        #define SEC_INIT                __attribute__((section (".init")))
+
+        #define UNREACHED               __builtin_unreachable()
+
         #define ACCESS_ONCE(x)      (*static_cast<volatile typeof(x) *>(&(x)))
 
 #else
-        #define COMPILER            "unknown compiler"
-        #define COMPILER_VERSION    0
+        #define COMPILER                "unknown compiler"
+        #define COMPILER_VERSION        0
 #endif

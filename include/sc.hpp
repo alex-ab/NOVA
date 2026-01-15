@@ -83,9 +83,9 @@ class Sc : public Kobject, public Refcount
         Sc (Pd *, Ec *, Sc &);
 
         ALWAYS_INLINE
-        static inline Rq *remote (unsigned long c)
+        static inline Rq *remote (cpu_t c)
         {
-            return reinterpret_cast<typeof rq *>(reinterpret_cast<mword>(&rq) - CPU_LOCAL_DATA + HV_GLOBAL_CPUS + c * PAGE_SIZE);
+            return reinterpret_cast<typeof rq *>(Kmem::loc_to_glb(c, &rq));
         }
 
         void remote_enqueue(bool = true);

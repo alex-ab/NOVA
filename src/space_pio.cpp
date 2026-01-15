@@ -36,7 +36,7 @@ Paddr Space_pio::walk (Quota &quota, bool host, mword idx)
             space_mem()->insert (quota, SPC_LOCAL_IOP, 1, Hpt::HPT_NX | Hpt::HPT_D | Hpt::HPT_A | Hpt::HPT_W | Hpt::HPT_P, bmp);
     }
 
-    return bmp | (idx_to_virt (idx) & (2 * PAGE_SIZE - 1));
+    return bmp | (idx_to_virt (idx) & (2 * PAGE_SIZE (0) - 1));
 }
 
 void Space_pio::update (Quota &quota, bool host, mword idx, mword attr)

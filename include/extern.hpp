@@ -23,10 +23,12 @@
 #include "memory.hpp"
 #include "types.hpp"
 
-extern char GIT_VER;
+extern char GIT_VER, NOVA_HPAS, NOVA_HPAE, HASH_INIT, HASH_HEAD, MLE_TL, MLE_L2, MLE_L1, MLE_L0, HASH_HPAS, HASH_HPAE, PT3S_HPAS;
 
-extern char PAGE_0[PAGE_SIZE];
-extern char PAGE_1[PAGE_SIZE];
+extern char __head_mle[52];
+
+extern char PAGE_0[PAGE_SIZE (0)];
+extern char PAGE_1[PAGE_SIZE (0)];
 extern char PAGE_H[PAGE_H_SIZE];
 extern mword PAGE_L;
 
@@ -35,18 +37,18 @@ extern char FRAME_1;
 extern char FRAME_H;
 
 extern char PDBR;
+extern char PTAB_HPAS;
 
 extern char LINK_P;
 extern char LINK_E;
 extern char LOAD_E;
-extern char OFFSET;
 
 extern mword FIXUP_S;
 extern mword FIXUP_E;
 
 extern void (*CTORS_L)();
 extern void (*CTORS_C)();
-extern void (*CTORS_G)();
+extern void (*CTORS_S)();
 extern void (*CTORS_E)();
 
 extern char entry_sysenter;

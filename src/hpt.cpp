@@ -30,7 +30,7 @@ bool Hpt::sync_user (Quota &quota, Hpt src, mword v)
 
 bool Hpt::sync_from (Quota &quota, Hpt src, mword v, mword o)
 {
-    mword l = (bit_scan_reverse (v ^ o) - PAGE_BITS) / bpl();
+    mword l = (bit_scan_reverse (v ^ o) - PAGE_BITS) / bpl;
 
     Hpt *s = static_cast<Hpt *>(src.walk (quota, v, l, false));
     if (!s)
@@ -49,7 +49,7 @@ bool Hpt::sync_from (Quota &quota, Hpt src, mword v, mword o)
 
 void Hpt::sync_master_range (Quota & quota, mword s, mword e)
 {
-    for (mword l = (bit_scan_reverse (LINK_ADDR ^ CPU_LOCAL) - PAGE_BITS) / bpl(); s < e; s += 1UL << (l * bpl() + PAGE_BITS))
+    for (mword l = (bit_scan_reverse (LINK_ADDR ^ CPU_LOCAL) - PAGE_BITS) / bpl; s < e; s += 1UL << (l * bpl + PAGE_BITS))
         sync_from (quota, Hptp (reinterpret_cast<mword>(&PDBR)), s, CPU_LOCAL);
 }
 
@@ -67,7 +67,7 @@ void *Hpt::remap (Quota &quota, Paddr phys, Memattr ma)
 {
     Hptp hpt (current());
 
-    size_t size = 1UL << (bpl() + PAGE_BITS);
+    size_t size = 1UL << (bpl + PAGE_BITS);
 
     mword offset = phys & (size - 1);
 
@@ -75,12 +75,32 @@ void *Hpt::remap (Quota &quota, Paddr phys, Memattr ma)
 
     Paddr old; mword attr;
     if (hpt.lookup (SPC_LOCAL_REMAP, old, attr)) {
-        hpt.update (quota, SPC_LOCAL_REMAP,        bpl(), 0, 0, ma, Hpt::TYPE_DN); flush (SPC_LOCAL_REMAP);
-        hpt.update (quota, SPC_LOCAL_REMAP + size, bpl(), 0, 0, ma, Hpt::TYPE_DN); flush (SPC_LOCAL_REMAP + size);
+        hpt.update (quota, SPC_LOCAL_REMAP,        bpl, 0, 0, ma, Hpt::TYPE_DN); flush (SPC_LOCAL_REMAP);
+        hpt.update (quota, SPC_LOCAL_REMAP + size, bpl, 0, 0, ma, Hpt::TYPE_DN); flush (SPC_LOCAL_REMAP + size);
     }
 
-    hpt.update (quota, SPC_LOCAL_REMAP,        bpl(), phys,        HPT_W | HPT_P, ma);
-    hpt.update (quota, SPC_LOCAL_REMAP + size, bpl(), phys + size, HPT_W | HPT_P, ma);
+    hpt.update (quota, SPC_LOCAL_REMAP,        bpl, phys,        HPT_W | HPT_P, ma);
+    hpt.update (quota, SPC_LOCAL_REMAP + size, bpl, phys + size, HPT_W | HPT_P, ma);
 
     return reinterpret_cast<void *>(SPC_LOCAL_REMAP + offset);
+}
+
+void * Hpt::map (Quota &quota, uintptr_t v, OAddr p, Paging::Permissions pm, Memattr ma, unsigned n)
+{
+    Hptp hpt (current());
+
+    constexpr auto s { Hpt::page_size (Hpt::bpl) };
+    constexpr auto o { Hpt::offs_mask (Hpt::bpl) };
+
+    auto pte = hpt.walk(quota, v, 1, false);
+
+    auto const r { v | (p & o) };
+
+    if (!pte)
+        return nullptr;
+
+    for (p = (p & ~o) | Hpt::page_attr (1, pm, ma); n--; flush (v), pte++, v += s, p += s)
+        pte->val = p;
+
+    return reinterpret_cast<void *>(r);
 }

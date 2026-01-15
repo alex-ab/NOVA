@@ -32,6 +32,7 @@
 #include "rcu.hpp"
 #include "stdio.hpp"
 #include "timeout.hpp"
+#include "txt.hpp"
 #include "vectors.hpp"
 
 unsigned    Lapic::freq_tsc;
@@ -92,7 +93,8 @@ void Lapic::init(bool const invariant_tsc)
     if (Cpu::bsp) {
         bool measured = !read_tsc_freq();
 
-        send_exc (0, Delivery::DLV_INIT);
+        if (!Txt::launched)
+            send_exc (0, Delivery::DLV_INIT);
 
         if (!freq_tsc) {
             uint32 const delay = (dl || !invariant_tsc) ? 10 : 500;
@@ -112,7 +114,7 @@ void Lapic::init(bool const invariant_tsc)
 
         trace (0, "TSC:%u kHz BUS:%u kHz%s%s", freq_tsc, freq_bus, measured ? " (measured)" : "", dl ? " DL" : "");
 
-        if (Cpu::online > 1) {
+        if (!Txt::launched && Cpu::online > 1) {
             send_exc (AP_BOOT_PADDR >> PAGE_BITS, Delivery::DLV_SIPI);
             Acpi::delay (1);
             send_exc (AP_BOOT_PADDR >> PAGE_BITS, Delivery::DLV_SIPI);
@@ -292,34 +294,35 @@ bool Lapic::hlt_other_cpus()
     return success;
 }
 
-extern "C" char __start_ap    [];
-extern "C" char __start_ap_end[];
-
 void Lapic::ap_code_manage(bool const prepare)
 {
+    extern char __init_aps, __init_aps__;
+
     static char backup[128] { };
     static bool valid { };
+
+    size_t const len = &__init_aps__ - &__init_aps;
+
+    assert (len < sizeof(backup));
 
     if (!prepare) {
 
         if (!valid)
             return;
 
-        memcpy(Hpt::remap (Pd::kern.quota, AP_BOOT_PADDR), backup, sizeof(backup));
+        memcpy(Hpt::remap (Pd::kern.quota, AP_BOOT_PADDR), backup, len);
         valid = false;
 
         return;
     }
-
-    assert (static_cast<size_t>(__start_ap_end - __start_ap) < sizeof(backup));
 
     if (valid)
         return;
 
     void * const ap_ptr { Hpt::remap (Pd::kern.quota, AP_BOOT_PADDR)};
 
-    memcpy(backup, ap_ptr,     sizeof(backup));
-    memcpy(ap_ptr, __start_ap, sizeof(backup));
+    memcpy(backup, ap_ptr, len);
+    memcpy(ap_ptr, reinterpret_cast<void *>(Kmem::sym_to_virt (&__init_aps)), len);
 
     valid = true;
 }

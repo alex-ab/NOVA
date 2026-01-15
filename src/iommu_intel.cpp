@@ -34,7 +34,7 @@ Dmar_ctx *  Dmar::ctx = new (Pd::kern.quota) Dmar_ctx;
 Dmar_irt *  Dmar::irt = new (Pd::kern.quota) Dmar_irt;
 uint32      Dmar::gcmd = GCMD_TE;
 
-Dmar::Dmar (Paddr p) : List<Dmar> (list), reg_base ((hwdev_addr -= PAGE_SIZE) | (p & PAGE_MASK)), invq (static_cast<Dmar_qi *>(Buddy::allocator.alloc (ord, Pd::kern.quota, Buddy::FILL_0))), invq_idx (0)
+Dmar::Dmar (Paddr p) : List<Dmar> (list), reg_base ((hwdev_addr -= PAGE_SIZE (0)) | (p & PAGE_MASK)), invq (static_cast<Dmar_qi *>(Buddy::allocator.alloc (ord, Pd::kern.quota, Buddy::FILL_0))), invq_idx (0)
 {
     Pd::kern.Space_mem::delreg (Pd::kern.quota, Pd::kern.mdb_cache, p & ~PAGE_MASK);
     Pd::kern.Space_mem::insert (Pd::kern.quota, reg_base, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, p & ~PAGE_MASK);
@@ -51,7 +51,7 @@ Dmar::Dmar (Paddr p) : List<Dmar> (list), reg_base ((hwdev_addr -= PAGE_SIZE) | 
     if (domain_cnt < Space_mem::dom_alloc.max())
         Space_mem::dom_alloc.reserve(domain_cnt, Space_mem::dom_alloc.max() - domain_cnt);
 
-    Dpt::ord = min (Dpt::ord, static_cast<mword>(bit_scan_reverse (static_cast<mword>(cap >> 34) & 0xf) + 2) * Dpt::bpl() - 1);
+    Dpt::ord = min (Dpt::ord, static_cast<mword>(bit_scan_reverse (static_cast<mword>(cap >> 34) & 0xf) + 2) * Dpt::bpl - 1);
     if (cm())
         Dpt::force_flush = true;
 
@@ -106,7 +106,7 @@ void Dmar::release (uint16 rid, Pd *p)
         if (!c->match(lev | p->dom_id << 8, p->dpt.root (p->quota, lev + 1) | 1))
             continue;
 
-        for (unsigned i = 0; i < PAGE_SIZE / sizeof(irt[0]); i++) {
+        for (unsigned i = 0; i < PAGE_SIZE (0) / sizeof(irt[0]); i++) {
             if ((irt[i].high() & 0xffff) == rid)
                 irt[i].set(0, 0);
         }

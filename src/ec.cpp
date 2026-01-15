@@ -364,7 +364,7 @@ void Ec::ret_user_vmresume()
                   "vmresume;"
                   "vmlaunch;"
                   "mov %1," EXPAND (PREG(sp);)
-                  : : "m" (current->regs), "i" (CPU_LOCAL_STCK + PAGE_SIZE) : "memory");
+                  : : "m" (current->regs), "i" (CPU_LOCAL_STCK + PAGE_SIZE (0)) : "memory");
 
     Fpu::State_xsv::make_current (current->regs.gst_xsv, Fpu::hst_xsv);    // Restore XSV host state
 
@@ -404,7 +404,7 @@ void Ec::ret_user_vmrun()
                   "cli;"
                   "stgi;"
                   "jmp svm_handler;"
-                  : : "m" (current->regs), "m" (Vmcb::root), "i" (CPU_LOCAL_STCK + PAGE_SIZE) : "memory");
+                  : : "m" (current->regs), "m" (Vmcb::root), "i" (CPU_LOCAL_STCK + PAGE_SIZE (0)) : "memory");
 
     UNREACHED;
 }
@@ -463,12 +463,12 @@ void Ec::root_invoke()
                             !!(p->flags & 0x2) << 1 |   // W
                             !!(p->flags & 0x1) << 2;    // X
 
-            if (p->f_size != p->m_size || p->v_addr % PAGE_SIZE != p->f_offs % PAGE_SIZE)
+            if (p->f_size != p->m_size || p->v_addr % PAGE_SIZE (0) != p->f_offs % PAGE_SIZE (0))
                 die ("Bad ELF");
 
-            mword phys = align_dn (p->f_offs + Hip::root_addr, PAGE_SIZE);
-            mword virt = align_dn (p->v_addr, PAGE_SIZE);
-            mword size = align_up (p->f_size, PAGE_SIZE);
+            mword phys = aligned_dn (PAGE_SIZE (0), p->f_offs + Hip::root_addr);
+            mword virt = aligned_dn (PAGE_SIZE (0), p->v_addr);
+            mword size = align_up (p->f_size, PAGE_SIZE (0));
 
             for (unsigned long o; size; size -= 1UL << o, phys += 1UL << o, virt += 1UL << o)
                 Pd::current->delegate<Space_mem>(&Pd::kern, phys >> PAGE_BITS, virt >> PAGE_BITS, (o = min (max_order (phys, size), max_order (virt, size))) - PAGE_BITS, attr, Memattr::ram());
@@ -477,9 +477,9 @@ void Ec::root_invoke()
 
     // Map hypervisor information page
     {
-        mword phys = align_dn (reinterpret_cast<Paddr>(&FRAME_H), PAGE_SIZE);
-        mword virt = align_dn (hip_addr, PAGE_SIZE);
-        mword size = align_up (PAGE_H_SIZE, PAGE_SIZE);
+        mword phys = aligned_dn (PAGE_SIZE (0), reinterpret_cast<Paddr>(&FRAME_H));
+        mword virt = aligned_dn (PAGE_SIZE (0), hip_addr);
+        mword size = align_up (PAGE_H_SIZE, PAGE_SIZE (0));
 
         for (unsigned long o; size; size -= 1UL << o, phys += 1UL << o, virt += 1UL << o)
             Pd::current->delegate<Space_mem>(&Pd::kern, phys >> PAGE_BITS, virt >> PAGE_BITS, (o = min (max_order (phys, size), max_order (virt, size))) - PAGE_BITS, 1, Memattr::ram());

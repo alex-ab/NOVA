@@ -149,7 +149,7 @@ class Ioapic : public List<Ioapic>
 
             auto const max = irt_max();
 
-            if (!saved_entries || (max * sizeof(uint64) > PAGE_SIZE))
+            if (!saved_entries || (max * sizeof(uint64) > PAGE_SIZE (0)))
                 return false;
 
             uint64 * const save = reinterpret_cast<uint64 *>(saved_entries);
@@ -165,7 +165,7 @@ class Ioapic : public List<Ioapic>
         {
             auto const max = irt_max();
 
-            if (!saved_entries || (max * sizeof(uint64) > PAGE_SIZE))
+            if (!saved_entries || (max * sizeof(uint64) > PAGE_SIZE (0)))
                 return false;
 
             uint64 const * const saved = reinterpret_cast<uint64 *>(saved_entries);

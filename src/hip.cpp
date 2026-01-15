@@ -64,8 +64,8 @@ bool Hip::build (mword magic, mword addr)
         h.sel_gsi   = NUM_GSI;
         h.sel_exc   = NUM_EXC;
         h.sel_vmi   = NUM_VMI;
-        h.cfg_page  = PAGE_SIZE;
-        h.cfg_utcb  = PAGE_SIZE;
+        h.cfg_page  = PAGE_SIZE (0);
+        h.cfg_utcb  = PAGE_SIZE (0);
     });
 
     if (magic == Multiboot1::MAGIC)
@@ -185,34 +185,33 @@ void Hip::add_mem (Hip_guard &hg, auto const *map)
         mem.aux  = 0;
 
         if (Cmdline::logmem && !PAGE_L &&
-            mem.size >= 2 * PAGE_SIZE &&
+            mem.size >= 2 * PAGE_SIZE (0) &&
             mem.addr + mem.size < ~0U)
         {
-            PAGE_L     = static_cast<mword>(((    mem.addr +     mem.size) & ~(0xFFFUL)) - PAGE_SIZE);
-            mem.size -= ((    mem.addr +     mem.size) & (0xFFFUL)) + PAGE_SIZE;
+            PAGE_L    = static_cast<mword>(((mem.addr + mem.size) & ~(0xFFFUL)) - PAGE_SIZE (0));
+            mem.size -=                    ((mem.addr + mem.size) &  (0xFFFUL)) + PAGE_SIZE (0);
         }
     });
 }
 
 void Hip::add_mhv (Hip_guard &hg)
 {
-    hg.with_mem_desc([&](auto &mem) {
+    {
         /* exclude init code which is reused during suspend/resume */
-        mem.addr = LOAD_ADDR;
-        mem.size = reinterpret_cast<mword>(&LOAD_E) - mem.addr;
-        mem.type = Hip_mem::HYPERVISOR;
+        mword const addr = LOAD_ADDR;
+        mword const size = align_up(reinterpret_cast<mword>(&LOAD_E) - addr, PAGE_SIZE (0));
 
-        auto mem_remove = mem.addr;
-        while (mem_remove < mem.addr + mem.size) {
-            Pd::kern.Space_mem::delreg(Pd::kern.quota, Pd::kern.mdb_cache, static_cast<mword>(mem_remove));
-            mem_remove += PAGE_SIZE;
+        mword mem_remove = LOAD_ADDR;
+        while (mem_remove < LOAD_ADDR + size) {
+            Pd::kern.Space_mem::delreg(Pd::kern.quota, Pd::kern.mdb_cache, mem_remove);
+            mem_remove += PAGE_SIZE (0);
         }
-    });
+    }
 
     hg.with_mem_desc([&](auto &mem) {
         /* exclude page where the 16bit AP boot-up & resume code is placed */
         mem.addr = AP_BOOT_PADDR;
-        mem.size = PAGE_SIZE;
+        mem.size = PAGE_SIZE (0);
         mem.type = Hip_mem::HYPERVISOR;
         Pd::kern.Space_mem::delreg(Pd::kern.quota, Pd::kern.mdb_cache, static_cast<mword>(mem.addr));
     });
@@ -270,7 +269,7 @@ void Hip::add_check()
     if (PAGE_L) {
         hg.with_mem_desc([&](auto &mem) {
             mem.addr = PAGE_L;
-            mem.size = PAGE_SIZE;
+            mem.size = PAGE_SIZE (0);
             mem.type = Hip_mem::HYP_LOG;
             mem.aux  = 0;
         });
@@ -396,12 +395,12 @@ void Hip::_add_buddy (Hip_guard &hg, uint64 const system_mem_max,
 
     hg.with_mem_desc([&](auto &mem) {
 
-        for (unsigned i = 0; i < (buddy_size / PAGE_SIZE); i++) {
-            Paddr const p_buddy = buddy_start + i * PAGE_SIZE;
+        for (unsigned i = 0; i < (buddy_size / PAGE_SIZE (0)); i++) {
+            Paddr const p_buddy = buddy_start + i * PAGE_SIZE (0);
             Pd::kern.Space_mem::delreg(Pd::kern.quota, Pd::kern.mdb_cache, p_buddy);
 
             if (!(p_buddy & mask))
-                Pd::kern.Space_mem::insert (Pd::kern.quota, v_buddy + i * PAGE_SIZE, mem_log - 12, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P, p_buddy);
+                Pd::kern.Space_mem::insert (Pd::kern.quota, v_buddy + i * PAGE_SIZE (0), mem_log - 12, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P, p_buddy);
         }
 
         memset(reinterpret_cast<void *>(v_buddy), 0, static_cast<mword>(buddy_size));

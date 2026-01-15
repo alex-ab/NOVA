@@ -30,7 +30,7 @@ void Console_mem::setup()
 
     Pd::kern.Space_mem::insert (Pd::kern.quota, HV_GLOBAL_LBUF, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, PAGE_L);
 
-    memset (reinterpret_cast<void *>(HV_GLOBAL_LBUF), 0, PAGE_SIZE);
+    memset (reinterpret_cast<void *>(HV_GLOBAL_LBUF), 0, PAGE_SIZE (0));
 
     enable();
 }

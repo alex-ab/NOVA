@@ -71,7 +71,7 @@ Vmcs::Vmcs (Quota &quota, mword esp, mword bmp, mword cr3, uint64 eptp) : rev (b
     write (EPTP_HI, static_cast<mword>(eptp >> 32));
 
     write (IO_BITMAP_A, bmp);
-    write (IO_BITMAP_B, bmp + PAGE_SIZE);
+    write (IO_BITMAP_B, bmp + PAGE_SIZE (0));
 
     write (HOST_SEL_CS, SEL_KERN_CODE);
     write (HOST_SEL_SS, SEL_KERN_DATA);
@@ -157,7 +157,7 @@ void Vmcs::init()
     if (has_ept() || has_vpid())
         ept_vpid.val = Msr::read (Msr::IA32_VMX_EPT_VPID);
     if (has_ept())
-        Ept::ord = min (Ept::ord, static_cast<mword>(bit_scan_reverse (static_cast<mword>(ept_vpid.super)) + 2) * Ept::bpl() - 1);
+        Ept::ord = min (Ept::ord, static_cast<mword>(bit_scan_reverse (static_cast<mword>(ept_vpid.super)) + 2) * Ept::bpl - 1);
     if (has_urg())
         fix_cr0_set &= ~(CR0_PG | CR0_PE);
 

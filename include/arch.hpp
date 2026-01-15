@@ -17,6 +17,8 @@
 
 #pragma once
 
+#include "macros.hpp"
+
 #ifdef __ASSEMBLER__
 #define PREG(X)         %REG(X)
 #define PSEG(X)         %X

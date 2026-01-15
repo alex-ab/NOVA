@@ -31,7 +31,7 @@ Iommu::Dte * Iommu::Amd::dtb;
 uint32       Iommu::Amd::dtsize;
 
 Iommu::Amd::Amd (Paddr const base, uint16 const rid, bool valid)
-: List<Iommu::Amd> (list), reg_base ((hwdev_addr -= 3 * PAGE_SIZE) | (base & PAGE_MASK)), iommu_rid(rid), efeat_valid(valid)
+: List<Iommu::Amd> (list), reg_base ((hwdev_addr -= 3 * PAGE_SIZE (0)) | (base & PAGE_MASK)), iommu_rid(rid), efeat_valid(valid)
 {
     for (unsigned i = 0; i < 3; i++) {
         Paddr const p = (base & ~0xffful) + 0x1000ul * i;

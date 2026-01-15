@@ -80,7 +80,7 @@ class Dmar_ctx
         inline bool match (uint64 h, uint64 l) { return hi == h && lo == l; }
 
         ALWAYS_INLINE
-        static inline void *operator new (size_t, Quota &quota) { return flush (Buddy::allocator.alloc (0, quota, Buddy::FILL_0), PAGE_SIZE); }
+        static inline void *operator new (size_t, Quota &quota) { return flush (Buddy::allocator.alloc (0, quota, Buddy::FILL_0), PAGE_SIZE (0)); }
 };
 
 class Dmar_irt
@@ -96,7 +96,7 @@ class Dmar_irt
         inline uint64 high() const { return hi; }
 
         ALWAYS_INLINE
-        static inline void *operator new (size_t, Quota &quota) { return flush (Buddy::allocator.alloc (0, quota, Buddy::FILL_0), PAGE_SIZE); }
+        static inline void *operator new (size_t, Quota &quota) { return flush (Buddy::allocator.alloc (0, quota, Buddy::FILL_0), PAGE_SIZE (0)); }
 };
 
 class Dmar : public Iommu::Interface, public List<Dmar>
@@ -117,7 +117,7 @@ class Dmar : public Iommu::Interface, public List<Dmar>
         static Slab_cache   cache;
 
         static unsigned const ord = 0;
-        static unsigned const cnt = (PAGE_SIZE << ord) / sizeof (Dmar_qi);
+        static unsigned const cnt = (PAGE_SIZE (0) << ord) / sizeof (Dmar_qi);
 
         enum Reg
         {

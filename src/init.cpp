@@ -34,6 +34,7 @@
 #include "pd.hpp"
 #include "multiboot1.hpp"
 #include "multiboot2.hpp"
+#include "txt.hpp"
 
 
 static inline unsigned apic_id()
@@ -79,7 +80,7 @@ mword kern_ptab_setup()
     Hptp hpt;
 
     // Allocate and map cpu page
-    hpt.update (Pd::kern.quota, CPU_LOCAL_DATA, 0,
+    hpt.update (Pd::kern.quota, MMAP_CPU_DATA, 0,
                 Buddy::ptr_to_phys (Buddy::allocator.alloc (0, Pd::kern.quota, Buddy::FILL_0)),
                 Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P, Memattr::ram());
 
@@ -97,26 +98,42 @@ mword kern_ptab_setup()
     return hpt.addr();
 }
 
+extern "C" void preinit()
+{
+#if 0
+    Console_serial k { };
+    k.putc('k');
+#endif
+#if 0
+    if (!Acpi::resume && !Txt::launched)
+        Cmdline::init();
+#endif
+
+    Patch::detect();
+
+    Txt::launch();
+}
+
 extern "C" INIT REGPARM (2)
 void init (mword magic, mword mbi)
 {
     // Setup 0-page and 1-page
-    memset (reinterpret_cast<void *>(&PAGE_0),  0,  PAGE_SIZE);
-    memset (reinterpret_cast<void *>(&PAGE_1), ~0u, PAGE_SIZE);
+    memset (reinterpret_cast<void *>(&PAGE_0),  0,  PAGE_SIZE (0));
+    memset (reinterpret_cast<void *>(&PAGE_1), ~0u, PAGE_SIZE (0));
 
-    Patch::detect();
-
-    for (void (**func)() = &CTORS_G; func != &CTORS_E; (*func++)()) ;
+    for (void (**func)() = &CTORS_S; func != &CTORS_E; (*func++)()) ;
 
     bool hip_ok = Hip::build (magic, mbi);
 
-    for (void (**func)() = &CTORS_C; func != &CTORS_G; (*func++)()) ;
+    for (void (**func)() = &CTORS_C; func != &CTORS_S; (*func++)()) ;
 
     // Now we're ready to talk to the world
     Console::print ("\fNOVA Microhypervisor v%d-%07lx (%s): [%s] [%s]\n", CFG_VER, reinterpret_cast<mword>(&GIT_VER), ARCH, COMPILER_STRING, magic == Multiboot1::MAGIC ? "MBI" : (magic==Multiboot2::MAGIC ? "MBI2" : ""));
 
     if (!hip_ok)
         Console::print ("error: HIP is incomplete\n");
+
+    Txt::init();
 
     Idt::build();
     Gsi::setup();

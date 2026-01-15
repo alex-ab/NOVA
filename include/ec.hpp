@@ -297,7 +297,7 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
 
             pd->make_current();
 
-            asm volatile ("mov %0," EXPAND (PREG(sp);) "jmp *%1" : : "g" (CPU_LOCAL_STCK + PAGE_SIZE), "q" (cont) : "memory"); UNREACHED;
+            asm volatile ("mov %0," EXPAND (PREG(sp);) "jmp *%1" : : "g" (CPU_LOCAL_STCK + PAGE_SIZE (0)), "q" (cont) : "memory"); UNREACHED;
         }
 
         ALWAYS_INLINE
@@ -329,9 +329,9 @@ class Ec : public Kobject, public Refcount, public Queue<Sc>
         }
 
         ALWAYS_INLINE
-        static inline Ec *remote (unsigned c)
+        static inline Ec *remote (cpu_t c)
         {
-            return *reinterpret_cast<volatile typeof current *>(reinterpret_cast<mword>(&current) - CPU_LOCAL_DATA + HV_GLOBAL_CPUS + c * PAGE_SIZE);
+            return *reinterpret_cast<volatile typeof current *>(Kmem::loc_to_glb(c, &current));
         }
 
         NOINLINE

@@ -67,7 +67,7 @@ class Msr final
             MSR_TEMPERATURE_TARGET  = 0x1a2,
             IA32_ENERGY_PERF_BIAS   = 0x1b0,
             IA32_THERM_PKG_STATUS   = 0x1b1,
-            IA32_DEBUG_CTL          = 0x1d9,
+            IA32_DEBUGCTL           = 0x1d9,
             IA32_MTRR_PHYS_BASE     = 0x200,
             IA32_MTRR_PHYS_MASK     = 0x201,
             IA32_MTRR_FIX64K_BASE   = 0x250,

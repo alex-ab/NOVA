@@ -39,6 +39,7 @@
 #include "svm.hpp"
 #include "tss.hpp"
 #include "vmx.hpp"
+#include "kmem.hpp"
 
 mword       Cpu::boot_lock;
 
@@ -358,15 +359,15 @@ void Cpu::init(bool resume)
 
     /*
      * hwdev_addr is decremented by PCI & IOAPIC & IOMMU objects and
-     * moves towards HV_GLOBAL_CPUS. If intersection happens we will run into
+     * moves towards MMAP_GLB_CPUS. If intersection happens we will run into
      * corruption issues, so detect the case and stop early.
      */
-    if (hwdev_addr < HV_GLOBAL_CPUS + NUM_CPU * PAGE_SIZE) {
+    if (hwdev_addr < MMAP_GLB_CPUS + NUM_CPU * PAGE_SIZE (0)) {
         trace (0, "Too many CPUS and PCI & IOAPIC & IOMMU devices");
         shutdown();
     }
 
-    static_assert (HV_GLOBAL_MAX / PAGE_SIZE >= NUM_CPU, "Too many CPUs configured");
+    static_assert (MMAP_GLB_MAX / PAGE_SIZE (0) >= NUM_CPU, "Too many CPUs configured");
 
     // Initialize CPU number and check features
     uint32_t clk { 0 }, rat { 0 }, lvl[4] { 0 }, name[12] { 0 };
@@ -380,8 +381,8 @@ void Cpu::init(bool resume)
 
         Paddr phys; mword attr;
         Pd::kern.Space_mem::loc[id] = Hptp (Hpt::current());
-        Pd::kern.Space_mem::loc[id].lookup (CPU_LOCAL_DATA, phys, attr);
-        Pd::kern.Space_mem::insert (Pd::kern.quota, HV_GLOBAL_CPUS + id * PAGE_SIZE, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P, phys);
+        Pd::kern.Space_mem::loc[id].lookup (MMAP_CPU_DATA, phys, attr);
+        Pd::kern.Space_mem::insert (Pd::kern.quota, MMAP_GLB_CPUS + id * PAGE_SIZE (0), 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_W | Hpt::HPT_P, phys);
         Hpt::ord = min (Hpt::ord, feature (GB_PAGES) ? 26UL : 17UL);
     }
 

@@ -46,7 +46,7 @@ class Console_mem : public Console
 
             *(buf() + sizeof(pos) + pos) = static_cast<char>(c);
 
-            pos = (pos + 1) % (static_cast<unsigned>(PAGE_SIZE - sizeof(pos)));
+            pos = (pos + 1) % (static_cast<unsigned>(PAGE_SIZE (0) - sizeof(pos)));
         }
 
         void setup();

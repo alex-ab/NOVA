@@ -139,8 +139,8 @@ Vtlb::Reason Vtlb::miss (Cpu_regs *regs, mword virt, mword &error)
 
     for (Vtlb *tlb = regs->vtlb;; tlb = static_cast<Vtlb *>(Buddy::phys_to_ptr (tlb->addr()))) {
 
-        unsigned shift = --lev * bpl() + PAGE_BITS;
-        tlb += virt >> shift & ((1UL << bpl()) - 1);
+        unsigned shift = --lev * bpl + PAGE_BITS;
+        tlb += virt >> shift & ((1UL << bpl) - 1);
 
         if (lev) {
 
@@ -174,7 +174,7 @@ Vtlb::Reason Vtlb::miss (Cpu_regs *regs, mword virt, mword &error)
 
 void Vtlb::flush_ptab (bool full)
 {
-    for (Vtlb *e = this; e < this + (1UL << bpl()); e++) {
+    for (Vtlb *e = this; e < this + (1UL << bpl); e++) {
 
         if (EXPECT_TRUE (!e->present()))
             continue;
@@ -195,8 +195,8 @@ void Vtlb::flush (mword virt)
 
     for (Vtlb *e = this;; e = static_cast<Vtlb *>(Buddy::phys_to_ptr (e->addr()))) {
 
-        unsigned shift = --l * bpl() + PAGE_BITS;
-        e += virt >> shift & ((1UL << bpl()) - 1);
+        unsigned shift = --l * bpl + PAGE_BITS;
+        e += virt >> shift & ((1UL << bpl) - 1);
 
         if (!e->present())
             return;

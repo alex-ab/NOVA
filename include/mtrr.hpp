@@ -23,6 +23,7 @@
 #include "bits.hpp"
 #include "list.hpp"
 #include "slab.hpp"
+#include "msr.hpp"
 
 class Mtrr : public List<Mtrr>
 {
@@ -56,4 +57,21 @@ class Mtrr : public List<Mtrr>
         static unsigned memtype (uint64, uint64 &);
 
         static void setup();
+
+        static auto get_vcnt() { return static_cast<unsigned>(Msr::read (Msr::Reg64::IA32_MTRR_CAP) & BIT_RANGE (7, 0)); }
+
+        static auto get_base (unsigned n) { return Msr::read (Msr::Arr64::IA32_MTRR_PHYS_BASE, 2, n); }
+        static auto get_mask (unsigned n) { return Msr::read (Msr::Arr64::IA32_MTRR_PHYS_MASK, 2, n); }
+
+        static void set_base (unsigned n, uint64_t v) { Msr::write (Msr::Arr64::IA32_MTRR_PHYS_BASE, 2, n, v); }
+        static void set_mask (unsigned n, uint64_t v) { Msr::write (Msr::Arr64::IA32_MTRR_PHYS_MASK, 2, n, v); }
+
+        static bool validate (unsigned n, uint64_t m)
+        {
+            for (unsigned i { 0 }; i < n; i++)
+                if (get_mask (i) & m)
+                    return false;
+
+            return true;
+        }
 };

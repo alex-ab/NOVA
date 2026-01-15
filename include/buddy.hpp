@@ -68,25 +68,25 @@ class Buddy : public List<Buddy>
         ALWAYS_INLINE
         inline signed long page_to_index (mword l_addr)
         {
-            return l_addr / PAGE_SIZE - base / PAGE_SIZE;
+            return l_addr / PAGE_SIZE (0) - base / PAGE_SIZE (0);
         }
 
         ALWAYS_INLINE
         inline mword index_to_page (signed long i)
         {
-            return base + i * PAGE_SIZE;
+            return base + i * PAGE_SIZE (0);
         }
 
         ALWAYS_INLINE
         inline mword virt_to_phys (mword virt)
         {
-            return virt - reinterpret_cast<mword>(&OFFSET);
+            return virt - mword(OFFSET);
         }
 
         ALWAYS_INLINE
         inline mword phys_to_virt (mword phys)
         {
-            return phys + reinterpret_cast<mword>(&OFFSET);
+            return phys + mword(OFFSET);
         }
 
     public:

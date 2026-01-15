@@ -23,6 +23,7 @@
 
 #include "arch.hpp"
 #include "pte.hpp"
+#include "paging.hpp"
 
 class Hpt : public Pte<Hpt, mword, PTE_LEV, PTE_BPL, false, false>
 {
@@ -135,6 +136,44 @@ class Hpt : public Pte<Hpt, mword, PTE_LEV, PTE_BPL, false, false>
 
         static bool dest_loc (Paddr, mword v, unsigned l) { return v >= USER_ADDR && l >= 3; }
         static bool iter_loc_lev(unsigned l, mword) { return l > 3; }
+
+        static constexpr auto page_size (unsigned o) { return BITN (o + PAGE_BITS); }
+        static constexpr auto offs_mask (unsigned o) { return page_size (o) - 1; }
+
+        enum
+        {
+            ATTR_P      = BIT64  (0),   // Present
+            ATTR_W      = BIT64  (1),   // Writable
+            ATTR_U      = BIT64  (2),   // User
+            ATTR_A      = BIT64  (5),   // Accessed
+            ATTR_D      = BIT64  (6),   // Dirty
+            ATTR_S      = BIT64  (7),   // Superpage
+            ATTR_G      = BIT64  (8),   // Global
+            ATTR_K      = BIT64  (9),   // Kernel Memory
+            ATTR_nX     = BIT64 (63),   // Not Executable
+        };
+
+        // Attributes for PTEs referring to leaf pages
+        static uintptr_t page_attr (unsigned l, Paging::Permissions p, Memattr a)
+        {
+            auto const cache { a.cache_s1() };
+
+            return !(p & Paging::API) ? 0 :
+                     ATTR_D  * !!(p & (Paging::SS | Paging::W))         |
+                     ATTR_G  * !!(p &  Paging::G)                       |
+                     ATTR_K  * !!(p &  Paging::K)                       |
+                     ATTR_U  * !!(p &  Paging::U)                       |
+#ifdef __x86_64__
+                     ATTR_nX *  !(p & (Paging::XS | Paging::XU))        |
+#endif
+                     ATTR_W  * !!(p &  Paging::W)                       |
+                     ATTR_S  * !!l | ATTR_A | ATTR_P                    |
+                     a.key_encode<uintptr_t>() | (cache & BIT (2)) << (l ? 10 : 5) | (cache & BIT_RANGE (1, 0)) << 3;
+        }
+
+        typedef mword OAddr;
+
+        static void *map (Quota &, uintptr_t, OAddr, Paging::Permissions = Paging::R, Memattr = Memattr::ram(), unsigned = 2);
 };
 
 class Hptp : public Hpt

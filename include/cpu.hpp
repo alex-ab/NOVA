@@ -26,6 +26,7 @@
 #include "arch.hpp"
 #include "compiler.hpp"
 #include "config.hpp"
+#include "kmem.hpp"
 #include "types.hpp"
 #include "assert.hpp"
 #include "macros.hpp"
@@ -202,12 +203,7 @@ class Cpu
             asm volatile ("cpuid" : "=a" (eax), "=b" (ebx), "=c" (ecx), "=d" (edx) : "a" (leaf), "c" (subleaf));
         }
 
-
-        static auto remote_topology (cpu_t c)
-        {
-            return *reinterpret_cast<mword *>(reinterpret_cast<mword>(&topology) - CPU_LOCAL_DATA + HV_GLOBAL_CPUS + c * PAGE_SIZE);
-        }
-
+        static auto remote_topology (cpu_t c) { return *Kmem::loc_to_glb (c, &topology); }
 
         static auto find_by_topology (uint32_t t)
         {

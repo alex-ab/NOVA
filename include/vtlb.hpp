@@ -82,7 +82,7 @@ class Vtlb : public Pte<Vtlb, uint64, 3,  9, false, false>
         ALWAYS_INLINE
         inline Vtlb()
         {
-            for (unsigned i = 0; i < 1UL << bpl(); i++)
+            for (unsigned i = 0; i < 1UL << bpl; i++)
                 this[i].val = TLB_S;
         }
 

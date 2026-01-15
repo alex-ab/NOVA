@@ -74,7 +74,7 @@ class Pte
             void *p = Buddy::allocator.alloc (0, quota, Buddy::FILL_0);
 
             if (F)
-                flush (p, PAGE_SIZE);
+                flush (p, PAGE_SIZE (0));
 
             return p;
         }
@@ -102,8 +102,7 @@ class Pte
             TYPE_DF,
         };
 
-        ALWAYS_INLINE
-        static inline unsigned bpl() { return B; }
+        static unsigned constexpr bpl { B };
 
         ALWAYS_INLINE
         static inline unsigned max() { return L; }
