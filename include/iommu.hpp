@@ -65,7 +65,7 @@ class Iommu::Interface
 
             /* heuristics are bad ... */
             if (i >= max || fault_info[i].count > 8) {
-                trace(TRACE_IOMMU, "IOMMU:%p - disabling fault reporting", this);
+                trace(TRACE_SMMU, "IOMMU:%p - disabling fault reporting", this);
                 return true;
             }
             return false;

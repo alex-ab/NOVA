@@ -21,6 +21,7 @@
 #pragma once
 
 #include "compiler.hpp"
+#include "lowlevel.hpp"
 
 template <typename T>
 ALWAYS_INLINE
@@ -38,23 +39,10 @@ inline void *flush (void *d, size_t n)
     return d;
 }
 
-ALWAYS_INLINE NORETURN
-inline void shutdown()
-{
-    for (;;)
-        asm volatile ("cli; hlt");
-}
-
 ALWAYS_INLINE
 static inline void wbinvd()
 {
     asm volatile ("wbinvd" : : : "memory");
-}
-
-ALWAYS_INLINE
-static inline void pause()
-{
-    asm volatile ("pause" : : : "memory");
 }
 
 ALWAYS_INLINE

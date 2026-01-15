@@ -183,7 +183,7 @@ void Vmcs::init()
 
     root->vmxon();
 
-    trace (TRACE_VMX, "VMCS:%#010lx REV:%#x EPT:%d URG:%d VNMI:%d VPID:%d", Buddy::ptr_to_phys (root), basic.revision, has_ept(), has_urg(), has_vnmi(), has_vpid());
+    trace (TRACE_VIRT, "VMCS:%#010lx REV:%#x EPT:%d URG:%d VNMI:%d VPID:%d", Buddy::ptr_to_phys (root), basic.revision, has_ept(), has_urg(), has_vnmi(), has_vpid());
 }
 
 void Vmcs_state::destroy(Vmcs_state * const remove, Quota &quota)

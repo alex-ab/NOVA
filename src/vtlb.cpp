@@ -108,7 +108,7 @@ Vtlb::Reason Vtlb::miss (Cpu_regs *regs, mword virt, mword &error)
     mword phys, attr = TLB_U | TLB_W | TLB_P;
     Paddr host;
 
-    trace (TRACE_VTLB, "VTLB Miss CR3:%#010lx A:%#010lx E:%#lx", regs->cr3_shadow, virt, error);
+    trace (TRACE_VIRT, "VTLB Miss CR3:%#010lx A:%#010lx E:%#lx", regs->cr3_shadow, virt, error);
 
     error &= ERR_U | ERR_W;
 

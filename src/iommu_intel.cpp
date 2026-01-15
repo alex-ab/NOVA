@@ -79,7 +79,7 @@ void Dmar::assign (uint16 rid, Pd *p)
     p->assign_rid(rid);
 
     if (p != &Pd::kern && read<uint32>(REG_FECTL) & (1UL << 31)) {
-        trace(TRACE_IOMMU, "IOMMU:%p - re-enabling fault reporting", this);
+        trace(TRACE_SMMU, "IOMMU:%p - re-enabling fault reporting", this);
         write<uint32>(REG_FECTL, 0);
     }
 }
@@ -130,7 +130,7 @@ void Dmar::fault_handler()
                 if (disabled)
                     continue;
 
-                trace (TRACE_IOMMU, "IOMMU:%p FRR:%u FR:%#x BDF:%x:%x:%x FI:%#010llx (%u)",
+                trace (TRACE_SMMU, "IOMMU:%p FRR:%u FR:%#x BDF:%x:%x:%x FI:%#010llx (%u)",
                        this,
                        frr,
                        static_cast<uint32>(hi >> 32) & 0xff,

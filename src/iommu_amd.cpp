@@ -57,7 +57,7 @@ void Iommu::Amd::fault_handler()
 
     if (((head > ring_size - 16)) || (tail > ring_size - 16)) {
 
-        trace(TRACE_IOMMU, "IOMMU:%p event ring access out of bound", this);
+        trace(TRACE_SMMU, "IOMMU:%p event ring access out of bound", this);
 
         disable_events(ctrl);
         return;
@@ -71,7 +71,7 @@ void Iommu::Amd::fault_handler()
             uint16 const rid   = info[0] & 0xffff;
             uint8  const type  = uint8((info[0] >> 60) & 0xfu);
 
-            trace (TRACE_IOMMU, "IOMMU:%p FR:%#010llx FI:%#010llx type:%#x BDF:%02x:%02x.%x",
+            trace (TRACE_SMMU, "IOMMU:%p FR:%#010llx FI:%#010llx type:%#x BDF:%02x:%02x.%x",
                    this, info[0], info[1], type,
                    (rid >> 8) & 0xff, (rid >> 3) & 0x1f, rid & 0x7);
 
@@ -225,7 +225,7 @@ void Iommu::Amd::assign (uint16 const rid, Pd * const p)
 
     uint64 const ctrl = read<uint64>(REG_CTRL);
     if (enable_events(ctrl))
-        trace(TRACE_IOMMU, "IOMMU:%p - re-enabling fault reporting", this);
+        trace(TRACE_SMMU, "IOMMU:%p - re-enabling fault reporting", this);
 
     if (entry->hptrp() != mask(p->ipt.root(p->quota))) {
         release(entry, rid);
@@ -389,7 +389,7 @@ void Iommu::Amd::flush(unsigned const rid, unsigned const type, bool const wait)
     if (!Lapic::pause_loop_until(500, [&] {
       return (ring_mask(read<uint64>(REG_CMD_HEAD)) != tail);
     }))
-      trace(TRACE_IOMMU, "timeout - iommu flush");
+      trace(TRACE_SMMU, "timeout - iommu flush");
 }
 
 void Iommu::Amd::flush_pgt (Pd &p)
@@ -411,7 +411,7 @@ void Iommu::Amd::flush_pgt (Pd &p)
     if (!Lapic::pause_loop_until(500, [&] {
       return (ring_mask(read<uint64>(REG_CMD_HEAD)) != tail);
     }))
-      trace(TRACE_IOMMU, "timeout - iommu flush pgt");
+      trace(TRACE_SMMU, "timeout - iommu flush pgt");
 }
 
 void Iommu::Amd::flush_pgt (uint16 const rid, Pd &p)

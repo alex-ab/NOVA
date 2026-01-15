@@ -5,7 +5,8 @@
  * Economic rights: Technische Universitaet Dresden (Germany)
  *
  * Copyright (C) 2012 Udo Steinberg, Intel Corporation.
- * Copyright (C) 2015 Alexander Boettcher, Genode Labs GmbH
+ * Copyright (C) 2019-2025 Udo Steinberg, BlueRock Security, Inc.
+ * Copyright (C) 2015-2026 Alexander Boettcher, Genode Labs GmbH
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -39,24 +40,35 @@ do {                                                                \
  * Definition of trace events
  */
 enum {
-    TRACE_CPU       = 1UL << 0,
-    TRACE_IOMMU     = 1UL << 1,
-    TRACE_APIC      = 1UL << 2,
-    TRACE_KEYB      = 1UL << 3,
-    TRACE_VMX       = 1UL << 4,
-    TRACE_SVM       = 1UL << 5,
-    TRACE_ACPI      = 1UL << 8,
-    TRACE_MEMORY    = 1UL << 13,
-    TRACE_PCI       = 1UL << 14,
-    TRACE_SCHEDULE  = 1UL << 16,
-    TRACE_VTLB      = 1UL << 17,
-    TRACE_DEL       = 1UL << 18,
-    TRACE_REV       = 1UL << 19,
-    TRACE_RCU       = 1UL << 20,
-    TRACE_FPU       = 1UL << 23,
-    TRACE_OOM       = 1UL << 24,
-    TRACE_SYSCALL   = 1UL << 30,
-    TRACE_ERROR     = 1UL << 31,
+    TRACE_CPU       = BIT  (0),
+    TRACE_FPU       = BIT  (1),
+    TRACE_PWR       = BIT  (2),
+    TRACE_MCA       = BIT  (3),
+    TRACE_PCI       = BIT  (4),
+    TRACE_TPM       = BIT  (5),
+    TRACE_DRTM      = BIT  (6),
+    TRACE_INTR      = BIT  (7),
+    TRACE_TIMR      = BIT  (8),
+    TRACE_SMMU      = BIT  (9),
+    TRACE_VIRT      = BIT (10),
+    TRACE_FIRM      = BIT (11),
+    TRACE_PARSE     = BIT (12),
+    TRACE_MEMORY    = BIT (13),
+    TRACE_SCHEDULE  = BIT (14),
+    TRACE_RCU       = BIT (17),
+    TRACE_CREATE    = BIT (18),
+    TRACE_DESTROY   = BIT (19),
+    TRACE_KEYB      = BIT (20),
+    TRACE_DEL       = BIT (21),
+    TRACE_REV       = BIT (22),
+    TRACE_OOM       = BIT (23),
+    TRACE_SYSCALL   = BIT (25),
+    TRACE_EXCEPTION = BIT (26),
+    TRACE_ROOT      = BIT (27),
+    TRACE_PERF      = BIT (28),
+    TRACE_CONT      = BIT (29),
+    TRACE_KILL      = BIT (30),
+    TRACE_ERROR     = BIT (31),
 };
 
 /*
@@ -64,18 +76,15 @@ enum {
  */
 unsigned const trace_mask =
                             TRACE_CPU       |
-                            TRACE_IOMMU     |
+                            TRACE_SMMU      |
 #ifdef DEBUG
 //                            TRACE_OOM       |
-//                            TRACE_APIC      |
 //                            TRACE_KEYB      |
-                            TRACE_VMX       |
-                            TRACE_SVM       |
+                            TRACE_VINTR       |
 //                            TRACE_ACPI      |
 //                            TRACE_MEMORY    |
 //                            TRACE_PCI       |
 //                            TRACE_SCHEDULE  |
-//                            TRACE_VTLB      |
 //                            TRACE_DEL       |
 //                            TRACE_REV       |
 //                            TRACE_RCU       |
