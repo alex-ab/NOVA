@@ -191,7 +191,7 @@ void Ec::handle_svm()
 
     /* all unsupported exits are remapped to a specific exit */
     if (reason >= NUM_VMI) {
-        trace (TRACE_SVM, "svm: unsupported exit reason=%lx\n", reason);
+        trace (TRACE_VIRT, "svm: unsupported exit reason=%lx\n", reason);
         reason = VM_EXIT_NOSUPP;
     }
 

@@ -38,6 +38,9 @@ using uint64_t      = __UINT64_TYPE__;
 using uint128_t     = __uint128_t;
 #endif
 
+// Pointer Types
+using uintptr_t     = __UINTPTR_TYPE__;
+
 // Size Types
 using size_t        = __SIZE_TYPE__;
 

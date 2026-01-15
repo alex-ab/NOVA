@@ -183,7 +183,7 @@ bool Ec::handle_exc_pf (Exc_regs *r)
 {
     mword addr = r->cr2;
 
-    if (!Pd::current)
+    if (!Pd::current) [[unlikely]]
         die ("#PF (kernel) - no Pd::current", r);
 
     if (r->err & Hpt::ERR_U)

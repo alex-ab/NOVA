@@ -138,7 +138,7 @@ class Iommu::Amd : public Iommu::Interface, public List<Amd>
 
             uint64 status = read<uint64>(REG_STATUS);
             if (status & 0x1) {
-                trace(TRACE_IOMMU, "IOMMU:%p event overflow", this);
+                trace(TRACE_SMMU, "IOMMU:%p event overflow", this);
 
                 disable_events(ctrl);
                 reenable = true;

@@ -215,7 +215,7 @@ class Dmar : public Iommu::Interface, public List<Dmar>
             if (!Lapic::pause_loop_until(500, [&] {
               return ((read<uint32>(REG_GSTS) & val) != val);
             }))
-              trace(TRACE_IOMMU, "timeout - iommu command");
+              trace(TRACE_SMMU, "timeout - iommu command");
         }
 
         ALWAYS_INLINE
@@ -234,7 +234,7 @@ class Dmar : public Iommu::Interface, public List<Dmar>
             if (!Lapic::pause_loop_until(500, [&] {
               return v != read<uint64>(REG_IQH);
             }))
-              trace(TRACE_IOMMU, "timeout - iommu qi_wait");
+              trace(TRACE_SMMU, "timeout - iommu qi_wait");
         }
 
         ALWAYS_INLINE
@@ -249,13 +249,13 @@ class Dmar : public Iommu::Interface, public List<Dmar>
                 if (!Lapic::pause_loop_until(500, [&] {
                   return (read<uint64>(REG_CCMD) & (1ULL << 63));
                 }))
-                  trace(TRACE_IOMMU, "timeout - iommu flush_ctx cmd");
+                  trace(TRACE_SMMU, "timeout - iommu flush_ctx cmd");
 
                 write<uint64>(REG_IOTLB, (1ULL << 63) | (uint64(mode) << 60) | ((domain_id & 0xffffULL) << 32));
                 if (!Lapic::pause_loop_until(500, [&] {
                   return (read<uint64>(REG_IOTLB) & (1ULL << 63));
                 }))
-                  trace(TRACE_IOMMU, "timeout - iommu flush_ctx iotlb");
+                  trace(TRACE_SMMU, "timeout - iommu flush_ctx iotlb");
 
             }
         }

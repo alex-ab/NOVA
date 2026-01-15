@@ -115,5 +115,5 @@ void Vmcb::init()
         root = Buddy::ptr_to_phys (new (Pd::kern.quota) Vmcb(Space_mem::NO_ASID_ID));
     Msr::write (Msr::AMD_SVM_HSAVE_PA, root);
 
-    trace (TRACE_SVM, "VMCB:%#010lx REV:%#x NPT:%d", root, svm_version, has_npt());
+    trace (TRACE_VIRT, "VMCB:%#010lx REV:%#x NPT:%d", root, svm_version, has_npt());
 }
