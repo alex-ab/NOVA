@@ -39,6 +39,7 @@
 #include "svm.hpp"
 #include "tss.hpp"
 #include "vmx.hpp"
+#include "tpm.hpp"
 
 mword       Cpu::boot_lock;
 
@@ -445,6 +446,13 @@ void Cpu::init(bool resume)
 
     if (Cpu::feature (Cpu::RDTSCP))
         Msr::write (Msr::IA32_TSC_AUX, Cpu::id);
+
+    if (bsp) {
+        Pd::kern.Space_mem::insert (Pd::kern.quota, MMAP_GLB_TPM2, 0, Hpt::HPT_NX | Hpt::HPT_G | Hpt::HPT_UC | Hpt::HPT_W | Hpt::HPT_P, 0xfed40000);
+
+        bool const ok = Tpm::init(true /* full initialization */);
+        trace(0, "TPM2 initialization %s", ok ? "succeeded" : "failed");
+    }
 
     Cpu::mwait_hint = ~0U; /* invalid */
 
