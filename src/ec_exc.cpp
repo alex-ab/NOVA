@@ -183,6 +183,9 @@ bool Ec::handle_exc_pf (Exc_regs *r)
 {
     mword addr = r->cr2;
 
+    if (!Pd::current)
+        die ("#PF (kernel) - no Pd::current", r);
+
     if (r->err & Hpt::ERR_U)
         return addr < USER_ADDR && Pd::current->Space_mem::loc[Cpu::id].sync_user (Pd::current->quota, Pd::current->Space_mem::hpt, addr);
 
