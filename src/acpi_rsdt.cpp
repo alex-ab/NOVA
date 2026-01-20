@@ -22,15 +22,16 @@
 #include "acpi_rsdt.hpp"
 #include "hpt.hpp"
 #include "pd.hpp"
+#include "checksum.hpp"
 
 struct Acpi_table_rsdt::table_map Acpi_table_rsdt::map[] INITDATA =
 {
-    { SIG ('A','P','I','C'),    &Acpi::madt },
-    { SIG ('D','M','A','R'),    &Acpi::dmar },
-    { SIG ('F','A','C','P'),    &Acpi::fadt },
-    { SIG ('H','P','E','T'),    &Acpi::hpet },
-    { SIG ('M','C','F','G'),    &Acpi::mcfg },
-    { SIG ('I','V','R','S'),    &Acpi::ivrs },
+    { SIG ('A','P','I','C'),  44,  &Acpi::madt },
+    { SIG ('D','M','A','R'),  48,  &Acpi::dmar },
+    { SIG ('F','A','C','P'), 244,  &Acpi::fadt },
+    { SIG ('H','P','E','T'),  56,  &Acpi::hpet },
+    { SIG ('M','C','F','G'),  44,  &Acpi::mcfg },
+    { SIG ('I','V','R','S'),  48,  &Acpi::ivrs },
 };
 
 void Acpi_table_rsdt::parse (Paddr addr, size_t size) const
@@ -53,4 +54,24 @@ void Acpi_table_rsdt::parse (Paddr addr, size_t size) const
                 if (acpi->signature == map[j].sig)
                     *map[j].ptr = table[i];
     }
+}
+
+bool Acpi_table::validate (uint64_t phys) const
+{
+    // Checksum must be correct
+    auto const valid { Checksum::additive (reinterpret_cast<uint8_t const *>(this), length) == 0 };
+
+    trace (TRACE_FIRM, "%4.4s: %#010llx OEM:%6.6s TBL:%8.8s REV:%2u LEN:%8u (%s)",
+           reinterpret_cast<char const *>(&signature), phys, oem_id, oem_table_id,
+           uint8_t { revision }, uint32_t { length }, valid ? "ok" : "bad");
+
+    auto & tables = Acpi_table_rsdt::map;
+
+    // If table address was already set by measured launch, then do not overwrite it
+    if (valid) [[likely]]
+        for (unsigned i { 0 }; i < sizeof (tables) / sizeof (*tables); i++)
+            if (tables[i].sig == signature && tables[i].len <= length && !tables[i].ptr)
+                *tables[i].ptr = uintptr_t(phys);
+
+    return valid;
 }

@@ -27,10 +27,13 @@
  */
 class Acpi_table_rsdt : public Acpi_table
 {
+    friend class Acpi_table;
+
     private:
         static struct table_map
         {
             uint32  const sig;
+            uint32  const len;
             Paddr * const ptr;
         } map[];
 

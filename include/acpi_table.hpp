@@ -38,4 +38,7 @@ class Acpi_table
 
         INIT
         bool good_checksum (Paddr addr) const;
+
+    bool validate (uint64_t) const;
+
 };
