@@ -39,7 +39,7 @@ class Multiboot_mmap
 /*
  * Multiboot Information Structure
  */
-class Multiboot
+class Multiboot1
 {
     public:
         enum

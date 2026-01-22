@@ -32,7 +32,7 @@
 #include "keyb.hpp"
 #include "patch.hpp"
 #include "pd.hpp"
-#include "multiboot.hpp"
+#include "multiboot1.hpp"
 #include "multiboot2.hpp"
 
 
@@ -113,7 +113,7 @@ void init (mword magic, mword mbi)
     for (void (**func)() = &CTORS_C; func != &CTORS_G; (*func++)()) ;
 
     // Now we're ready to talk to the world
-    Console::print ("\fNOVA Microhypervisor v%d-%07lx (%s): [%s] [%s]\n", CFG_VER, reinterpret_cast<mword>(&GIT_VER), ARCH, COMPILER_STRING, magic == Multiboot::MAGIC ? "MBI" : (magic==Multiboot2::MAGIC ? "MBI2" : ""));
+    Console::print ("\fNOVA Microhypervisor v%d-%07lx (%s): [%s] [%s]\n", CFG_VER, reinterpret_cast<mword>(&GIT_VER), ARCH, COMPILER_STRING, magic == Multiboot1::MAGIC ? "MBI" : (magic==Multiboot2::MAGIC ? "MBI2" : ""));
 
     if (!hip_ok)
         Console::print ("error: HIP is incomplete\n");

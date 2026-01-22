@@ -24,7 +24,7 @@
 #include "hip.hpp"
 #include "hpt.hpp"
 #include "lapic.hpp"
-#include "multiboot.hpp"
+#include "multiboot1.hpp"
 #include "multiboot2.hpp"
 #include "space_obj.hpp"
 #include "pd.hpp"
@@ -68,7 +68,7 @@ bool Hip::build (mword magic, mword addr)
         h.cfg_utcb  = PAGE_SIZE;
     });
 
-    if (magic == Multiboot::MAGIC)
+    if (magic == Multiboot1::MAGIC)
         build_mbi1(hip_guard, addr);
 
     if (magic == Multiboot2::MAGIC)
@@ -89,7 +89,7 @@ bool Hip::build (mword magic, mword addr)
 
 void Hip::build_mbi1(Hip_guard &hg, mword addr)
 {
-    Multiboot const *mbi = static_cast<Multiboot const *>(Hpt::remap (Pd::kern.quota, addr));
+    Multiboot1 const *mbi = static_cast<Multiboot1 const *>(Hpt::remap (Pd::kern.quota, addr));
 
     uint32 flags       = mbi->flags;
     uint32 cmdline     = mbi->cmdline;
@@ -98,15 +98,15 @@ void Hip::build_mbi1(Hip_guard &hg, mword addr)
     uint32 mods_addr   = mbi->mods_addr;
     uint32 mods_count  = mbi->mods_count;
 
-    if (flags & Multiboot::CMDLINE)
+    if (flags & Multiboot1::CMDLINE)
         Cmdline::init (static_cast<char const *>(Hpt::remap (Pd::kern.quota, cmdline)));
 
-    if (flags & Multiboot::MEMORY_MAP) {
+    if (flags & Multiboot1::MEMORY_MAP) {
         char const *remap = static_cast<char const *>(Hpt::remap (Pd::kern.quota, mmap_addr));
         mbi->for_each_mem(remap, mmap_len, [&] (Multiboot_mmap const * mmap) { Hip::add_mem(hg, mmap); });
     }
 
-    if (flags & Multiboot::MODULES) {
+    if (flags & Multiboot1::MODULES) {
         Multiboot_module *mod = static_cast<Multiboot_module *>(Hpt::remap (Pd::kern.quota, mods_addr));
         for (unsigned i = 0; i < mods_count; i++, mod++)
             add_mod (hg, mod, mod->cmdline);
