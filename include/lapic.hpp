@@ -232,8 +232,10 @@ class Lapic final
            while (!timeout && fn()) {
              pause();
 
-             if (freq_tsc && ((++r % 100) == 0))
-                timeout = (tsc + (ms * freq_tsc)) < time();
+             if ((++r % 100) == 0) {
+                auto freq = freq_tsc ? : 2'000'000ull;
+                timeout = (tsc + (ms * freq)) < time();
+             }
            }
 
            return !timeout;
