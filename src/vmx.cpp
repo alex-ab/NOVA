@@ -90,7 +90,7 @@ Vmcs::Vmcs (Quota &quota, mword esp, mword bmp, mword cr3, uint64 eptp) : rev (b
     write (ENT_CONTROLS, (ent | ctrl_ent.set) & ctrl_ent.clr);
 
     write (HOST_CR3, cr3);
-    write (HOST_CR0, get_cr0() | Cpu::CR0_TS);
+    write (HOST_CR0, get_cr0() | CR0_TS);
     write (HOST_CR4, get_cr4());
 
     write (HOST_BASE_TR,   reinterpret_cast<mword>(&Tss::run));
@@ -159,9 +159,9 @@ void Vmcs::init()
     if (has_ept())
         Ept::ord = min (Ept::ord, static_cast<mword>(bit_scan_reverse (static_cast<mword>(ept_vpid.super)) + 2) * Ept::bpl() - 1);
     if (has_urg())
-        fix_cr0_set &= ~(Cpu::CR0_PG | Cpu::CR0_PE);
+        fix_cr0_set &= ~(CR0_PG | CR0_PE);
 
-    fix_cr0_clr |= Cpu::CR0_CD | Cpu::CR0_NW;
+    fix_cr0_clr |= CR0_CD | CR0_NW;
 
     ctrl_cpu[0].set |= CPU_HLT | CPU_IO | CPU_IO_BITMAP | CPU_SECONDARY;
 

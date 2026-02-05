@@ -49,7 +49,7 @@ void bootstrap()
 
     if (resumed) {
         // Barrier: wait for all ECs to arrive here
-        for (Atomic::add (barrier, 1UL); barrier != Cpu::online; pause()) ;
+        for (Atomic_legacy::add (barrier, 1UL); barrier != Cpu::online; pause()) ;
 
         Msr::write (Msr::IA32_TSC, Acpi::resume_time);
 
@@ -70,7 +70,7 @@ void bootstrap()
     Ec::ec_idle = Ec::current;
 
     // Barrier: wait for all ECs to arrive here
-    for (Atomic::add (barrier, 1UL); barrier != Cpu::online; pause()) ;
+    for (Atomic_legacy::add (barrier, 1UL); barrier != Cpu::online; pause()) ;
 
     Msr::write (Msr::IA32_TSC, 0);
 

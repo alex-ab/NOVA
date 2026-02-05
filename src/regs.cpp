@@ -91,15 +91,15 @@ template <> void Cpu_regs::tlb_flush<Vmcs>(mword addr) const
 template <typename T>
 Cpu_regs::Mode Cpu_regs::mode() const
 {
-    if (!(get_cr0<T>() & Cpu::CR0_PE))
+    if (!(get_cr0<T>() & CR0_PE))
         return MODE_REAL;
 
-    if (get_g_flags<T>() & Cpu::EFL_VM)
+    if (get_g_flags<T>() & RFL_VM)
         return MODE_VM86;
 
     mword dl = get_g_cs_dl<T>();
 
-    return (get_g_efer<T>() & Cpu::EFER_LMA) && (dl & 1) ? MODE_PROT_64 : dl & 2 ? MODE_PROT_32 : MODE_PROT_16;
+    return (get_g_efer<T>() & EFER_LMA) && (dl & 1) ? MODE_PROT_64 : dl & 2 ? MODE_PROT_32 : MODE_PROT_16;
 }
 
 template <typename T>
@@ -114,9 +114,9 @@ mword Cpu_regs::cr0_set() const
     mword set = 0;
 
     if (!nst_on)
-        set |= Cpu::CR0_PG | Cpu::CR0_WP | Cpu::CR0_PE;
+        set |= CR0_PG | CR0_WP | CR0_PE;
     if (!fpu_on)
-        set |= Cpu::CR0_TS;
+        set |= CR0_TS;
 
     return T::fix_cr0_set | set;
 }
@@ -132,9 +132,9 @@ mword Cpu_regs::cr4_set() const
 {
     mword set = nst_on ? 0 :
 #ifdef __i386__
-                Cpu::CR4_PSE;
+                CR4_PSE;
 #else
-                Cpu::CR4_PSE | Cpu::CR4_PAE;
+                CR4_PSE | CR4_PAE;
 #endif
 
     return T::fix_cr4_set | set;
@@ -145,9 +145,9 @@ mword Cpu_regs::cr4_msk() const
 {
     mword clr = nst_on ? 0 :
 #ifdef __i386__
-                Cpu::CR4_PGE | Cpu::CR4_PAE;
+                CR4_PGE | CR4_PAE;
 #else
-                Cpu::CR4_PGE;
+                CR4_PGE;
 #endif
 
     return T::fix_cr4_clr | clr | cr4_set<T>();
@@ -178,7 +178,7 @@ mword Cpu_regs::get_cr4() const
 template <typename T>
 void Cpu_regs::set_cr0 (mword v)
 {
-    set_g_cr0<T> ((v & (~cr0_msk<T>() | Cpu::CR0_PE)) | (cr0_set<T>() & ~Cpu::CR0_PE));
+    set_g_cr0<T> ((v & (~cr0_msk<T>() | CR0_PE)) | (cr0_set<T>() & ~CR0_PE));
     set_s_cr0<T> (v);
 }
 
@@ -201,12 +201,12 @@ void Cpu_regs::set_cr4 (mword v)
 template <typename T>
 void Cpu_regs::set_exc() const
 {
-    unsigned msk = 1UL << Cpu::EXC_AC;
+    unsigned msk = 1UL << EXC_AC;
 
     if (!nst_on)
-        msk |= 1UL << Cpu::EXC_PF;
+        msk |= 1UL << EXC_PF;
     if (!fpu_on)
-        msk |= 1UL << Cpu::EXC_NM;
+        msk |= 1UL << EXC_NM;
 
     set_e_bmp<T> (msk);
 }
@@ -403,22 +403,22 @@ void Cpu_regs::write_cr (unsigned cr, mword val)
             toggled = get_cr0<T>() ^ val;
 
             if (!nst_on)
-                if (toggled & (Cpu::CR0_PG | Cpu::CR0_WP | Cpu::CR0_PE))
+                if (toggled & (CR0_PG | CR0_WP | CR0_PE))
                     tlb_flush<T> (true);
 
             set_cr0<T> (val);
 
-            if (toggled & Cpu::CR0_PG) {
+            if (toggled & CR0_PG) {
 
                 if (!T::has_urg())
-                    nst_ctrl<T> (val & Cpu::CR0_PG);
+                    nst_ctrl<T> (val & CR0_PG);
 
 #ifdef __x86_64__
                 mword efer = get_g_efer<T>();
-                if ((val & Cpu::CR0_PG) && (efer & Cpu::EFER_LME))
-                    write_efer<T> (efer |  Cpu::EFER_LMA);
+                if ((val & CR0_PG) && (efer & EFER_LME))
+                    write_efer<T> (efer |  EFER_LMA);
                 else
-                    write_efer<T> (efer & ~Cpu::EFER_LMA);
+                    write_efer<T> (efer & ~EFER_LMA);
 #endif
             }
 
@@ -428,7 +428,7 @@ void Cpu_regs::write_cr (unsigned cr, mword val)
             toggled = get_cr4<T>() ^ val;
 
             if (!nst_on)
-                if (toggled & (Cpu::CR4_PGE | Cpu::CR4_PAE | Cpu::CR4_PSE))
+                if (toggled & (CR4_PGE | CR4_PAE | CR4_PSE))
                     tlb_flush<T> (true);
 
             set_cr4<T> (val);
@@ -449,7 +449,7 @@ template <> void Cpu_regs::write_efer<Vmcs> (mword val)
 {
     Vmcs::write (Vmcs::GUEST_EFER, val);
 
-    if (val & Cpu::EFER_LMA)
+    if (val & EFER_LMA)
         Vmcs::write (Vmcs::ENT_CONTROLS, Vmcs::read (Vmcs::ENT_CONTROLS) |  Vmcs::ENT_GUEST_64);
     else
         Vmcs::write (Vmcs::ENT_CONTROLS, Vmcs::read (Vmcs::ENT_CONTROLS) & ~Vmcs::ENT_GUEST_64);

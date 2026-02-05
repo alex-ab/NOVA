@@ -1,7 +1,7 @@
 /*
  * C++ Standard Functions
  *
- * Copyright (C) 2019-2024 Udo Steinberg, BlueRock Security, Inc.
+ * Copyright (C) 2019-2025 Udo Steinberg, BlueRock Security, Inc.
  *
  * This file is part of the NOVA microhypervisor.
  *
@@ -22,15 +22,27 @@
 namespace std
 {
     // See https://en.cppreference.com/w/cpp/types/conditional
-    template<bool B, class T, class F> struct conditional {};
-    template<        class T, class F> struct conditional<true,  T, F> { using type = T; };
-    template<        class T, class F> struct conditional<false, T, F> { using type = F; };
-    template<bool B, class T, class F> using  conditional_t = typename conditional<B,T,F>::type;
+    template<bool B, typename T, typename F> struct conditional {};
+    template<        typename T, typename F> struct conditional<true,  T, F> { using type = T; };
+    template<        typename T, typename F> struct conditional<false, T, F> { using type = F; };
+    template<bool B, typename T, typename F> using  conditional_t = typename conditional<B, T, F>::type;
+
+    // See https://en.cppreference.com/w/cpp/types/enable_if
+    template<bool B, typename T = void> struct enable_if {};
+    template<        typename T>        struct enable_if<true, T> { using type = T; };
+    template<bool B, typename T = void> using  enable_if_t = typename enable_if<B, T>::type;
+
+    // See https://en.cppreference.com/w/cpp/types/remove_cv
+    template<typename T> struct remove_cv                   { using type = T; };
+    template<typename T> struct remove_cv<T const>          { using type = T; };
+    template<typename T> struct remove_cv<T volatile>       { using type = T; };
+    template<typename T> struct remove_cv<T const volatile> { using type = T; };
+    template<typename T> using  remove_cv_t = typename remove_cv<T>::type;
 
     // See https://en.cppreference.com/w/cpp/types/remove_reference
-    template<typename T> struct remove_reference        { using type = T; };    // non-reference
-    template<typename T> struct remove_reference<T&>    { using type = T; };    // lvalue reference
-    template<typename T> struct remove_reference<T&&>   { using type = T; };    // rvalue reference
+    template<typename T> struct remove_reference            { using type = T; };    // non-reference
+    template<typename T> struct remove_reference<T&>        { using type = T; };    // lvalue reference
+    template<typename T> struct remove_reference<T&&>       { using type = T; };    // rvalue reference
     template<typename T> using  remove_reference_t = typename remove_reference<T>::type;
 
     // See https://en.cppreference.com/w/cpp/utility/forward
@@ -48,6 +60,50 @@ namespace std
 
     // See https://en.cppreference.com/w/cpp/utility/to_underlying
     template<typename T> [[nodiscard]] constexpr auto to_underlying (T t) noexcept { return static_cast<__underlying_type (T)>(t); }
+
+    // See https://en.cppreference.com/w/cpp/types/integral_constant
+    template<typename T, T v> struct integral_constant
+    {
+        static constexpr T value = v;
+        using type = integral_constant<T, v>;
+    };
+
+    using true_type  = integral_constant<bool, true>;
+    using false_type = integral_constant<bool, false>;
+
+    // See https://en.cppreference.com/w/cpp/types/is_integral
+    template<typename>   struct __helper_int                        : false_type {};
+    template<>           struct __helper_int<bool>                  : true_type  {};
+    template<>           struct __helper_int<char>                  : true_type  {};
+    template<>           struct __helper_int<signed char>           : true_type  {};
+    template<>           struct __helper_int<signed short>          : true_type  {};
+    template<>           struct __helper_int<signed int>            : true_type  {};
+    template<>           struct __helper_int<signed long>           : true_type  {};
+    template<>           struct __helper_int<signed long long>      : true_type  {};
+    template<>           struct __helper_int<unsigned char>         : true_type  {};
+    template<>           struct __helper_int<unsigned short>        : true_type  {};
+    template<>           struct __helper_int<unsigned int>          : true_type  {};
+    template<>           struct __helper_int<unsigned long>         : true_type  {};
+    template<>           struct __helper_int<unsigned long long>    : true_type  {};
+    template<typename T> struct is_integral : __helper_int<remove_cv_t<T>>::type {};
+
+    // See https://en.cppreference.com/w/cpp/types/is_pointer
+    template<typename>   struct __helper_ptr                        : false_type {};
+    template<typename T> struct __helper_ptr<T*>                    : true_type  {};
+    template<typename T> struct is_pointer : __helper_ptr<remove_cv_t<T>>::type  {};
+
+    // See https://en.cppreference.com/w/cpp/types/is_reference
+    template<typename T> struct is_reference                        : false_type {};
+    template<typename T> struct is_reference<T&>                    : true_type  {};
+    template<typename T> struct is_reference<T&&>                   : true_type  {};
+
+    // See https://en.cppreference.com/w/cpp/types/is_lvalue_reference
+    template<typename>   struct is_lvalue_reference                 : false_type {};
+    template<typename T> struct is_lvalue_reference<T&>             : true_type  {};
+
+    // See https://en.cppreference.com/w/cpp/types/is_rvalue_reference
+    template<typename>   struct is_rvalue_reference                 : false_type {};
+    template<typename T> struct is_rvalue_reference<T&&>            : true_type  {};
 }
 
 // See https://en.cppreference.com/w/cpp/memory/new/operator_new

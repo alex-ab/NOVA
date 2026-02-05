@@ -55,7 +55,7 @@ void Rcu::start_batch (State s)
 {
     mword v, m = RCU_CMP | RCU_PND;
 
-    do if ((v = state) >> 2 != l_batch) return; while (!(v & s) && !Atomic::cmp_swap (state, v, v | s));
+    do if ((v = state) >> 2 != l_batch) return; while (!(v & s) && !Atomic_legacy::cmp_swap (state, v, v | s));
 
     if ((v ^ ~s) & m)
         return;
@@ -71,7 +71,7 @@ void Rcu::quiet()
 {
     Cpu::hazard &= ~HZD_RCU;
 
-    if (Atomic::sub (count, 1UL) == 0)
+    if (Atomic_legacy::sub (count, 1UL) == 0)
         start_batch (RCU_CMP);
 }
 

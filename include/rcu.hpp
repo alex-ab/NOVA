@@ -76,11 +76,11 @@ class Rcu_list
 
             if (!e->next)
                 /* new element - mark as in use */
-                if (!Atomic::cmp_swap (e->next, unused, in_use))
+                if (!Atomic_legacy::cmp_swap (e->next, unused, in_use))
                     /* element got used by another queue */
                     return false;
 
-            if (!Atomic::cmp_swap (*tail, *tail, e))
+            if (!Atomic_legacy::cmp_swap (*tail, *tail, e))
                 /* element got enqueued by another queue */
                 return false;
 

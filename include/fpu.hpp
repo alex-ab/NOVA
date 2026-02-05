@@ -201,7 +201,7 @@ class Fpu
         ALWAYS_INLINE
         static inline void disable()
         {
-            set_cr0 (get_cr0() | Cpu::CR0_TS);
+            set_cr0 (get_cr0() | CR0_TS);
 
             Cpu::hazard &= ~HZD_FPU;
         }

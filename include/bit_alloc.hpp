@@ -45,7 +45,7 @@ class Bit_alloc
             static_assert(MAX*BITS_CNT == C, "bit allocator");
             static_assert(INV < C, "bit allocator");
 
-            Atomic::test_set_bit(bits[INV / BITS_CNT], INV % BITS_CNT);
+            Atomic_legacy::test_set_bit(bits[INV / BITS_CNT], INV % BITS_CNT);
         }
 
         ALWAYS_INLINE
@@ -59,7 +59,7 @@ class Bit_alloc
                     continue;
 
                 long b = bit_scan_forward (~bits[i]);
-                if (b < 0 || b >= BITS_CNT || Atomic::test_set_bit (bits[i], b)) {
+                if (b < 0 || b >= BITS_CNT || Atomic_legacy::test_set_bit (bits[i], b)) {
                     j--;
                     i--;
                     continue;
@@ -84,7 +84,7 @@ class Bit_alloc
             mword b = id % BITS_CNT;
 
             while (ACCESS_ONCE(bits[i]) & (1ul << b))
-                 Atomic::test_clr_bit (ACCESS_ONCE(bits[i]), b);
+                 Atomic_legacy::test_clr_bit (ACCESS_ONCE(bits[i]), b);
         }
 
         void reserve(mword const start, mword const count)

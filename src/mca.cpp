@@ -29,7 +29,7 @@ void Mca::init()
     if (EXPECT_FALSE (!Cpu::feature (Cpu::MCE)))
         return;
 
-    set_cr4 (get_cr4() | Cpu::CR4_MCE);
+    set_cr4 (get_cr4() | CR4_MCE);
 
     if (EXPECT_FALSE (!Cpu::feature (Cpu::MCA)))
         return;

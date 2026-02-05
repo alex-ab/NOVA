@@ -74,22 +74,25 @@ enum {
 /*
  * Enabled trace events
  */
-unsigned const trace_mask =
-                            TRACE_CPU       |
-                            TRACE_SMMU      |
+constexpr auto trace_mask
+{
+    TRACE_CPU       |
+    TRACE_PCI       |
+    TRACE_TPM       |
+    TRACE_DRTM      |
+    TRACE_SMMU      |
+//    TRACE_FIRM      |
+    TRACE_ROOT      |
+    TRACE_PERF      |
+    TRACE_KILL      |
+    TRACE_ERROR     |
 #ifdef DEBUG
-//                            TRACE_OOM       |
-//                            TRACE_KEYB      |
-                            TRACE_VINTR       |
-//                            TRACE_ACPI      |
-//                            TRACE_MEMORY    |
-//                            TRACE_PCI       |
-//                            TRACE_SCHEDULE  |
-//                            TRACE_DEL       |
-//                            TRACE_REV       |
-//                            TRACE_RCU       |
-//                            TRACE_FPU       |
-//                            TRACE_SYSCALL   |
+    TRACE_FPU       |
+    TRACE_PWR       |
+    TRACE_MCA       |
+    TRACE_INTR      |
+    TRACE_TIMR      |
+    TRACE_VIRT      |
 #endif
-                            TRACE_ERROR     |
-                            0;
+    0
+};

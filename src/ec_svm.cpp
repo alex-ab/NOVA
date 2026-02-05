@@ -133,7 +133,7 @@ void Ec::svm_cr(mword const reason)
     switch (opc) {
 
         case 0x6:       // CLTS
-            current->regs.write_cr<Vmcb> (0, current->regs.read_cr<Vmcb> (0) & ~Cpu::CR0_TS);
+            current->regs.write_cr<Vmcb> (0, current->regs.read_cr<Vmcb> (0) & ~CR0_TS);
             len = 2;
             break;
 

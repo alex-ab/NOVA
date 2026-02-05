@@ -150,20 +150,20 @@ void Ec::vmx_cr()
             mword cr4 = current->regs.read_cr<Vmcs>(4);
 
             /* no update needed if not in protected mode with paging and PAE enabled */
-            if (!((cr0 & Cpu::CR0_PE) &&
-                  (cr0 & Cpu::CR0_PG) &&
-                  (cr4 & Cpu::CR4_PAE)))
+            if (!((cr0 & CR0_PE) &&
+                  (cr0 & CR0_PG) &&
+                  (cr4 & CR4_PAE)))
                 break;
 
             /* no update needed if no relevant bits of CR0 or CR4 have changed */
             if ((cr != 3) &&
-                ((cr0 & Cpu::CR0_CD) == (old_cr0 & Cpu::CR0_CD)) &&
-                ((cr0 & Cpu::CR0_NW) == (old_cr0 & Cpu::CR0_NW)) &&
-                ((cr0 & Cpu::CR0_PG) == (old_cr0 & Cpu::CR0_PG)) &&
-                ((cr4 & Cpu::CR4_PAE) == (old_cr4 & Cpu::CR4_PAE)) &&
-                ((cr4 & Cpu::CR4_PGE) == (old_cr4 & Cpu::CR4_PGE)) &&
-                ((cr4 & Cpu::CR4_PSE) == (old_cr4 & Cpu::CR4_PSE)) &&
-                ((cr4 & Cpu::CR4_SMEP) == (old_cr4 & Cpu::CR4_SMEP)))
+                ((cr0 & CR0_CD)   == (old_cr0 & CR0_CD))  &&
+                ((cr0 & CR0_NW)   == (old_cr0 & CR0_NW))  &&
+                ((cr0 & CR0_PG)   == (old_cr0 & CR0_PG))  &&
+                ((cr4 & CR4_PAE)  == (old_cr4 & CR4_PAE)) &&
+                ((cr4 & CR4_PGE)  == (old_cr4 & CR4_PGE)) &&
+                ((cr4 & CR4_PSE)  == (old_cr4 & CR4_PSE)) &&
+                ((cr4 & CR4_SMEP) == (old_cr4 & CR4_SMEP)))
                break;
 
             /* PDPTE register update necessary */
@@ -184,7 +184,7 @@ void Ec::vmx_cr()
             current->regs.vmx_write_gpr (gpr, current->regs.read_cr<Vmcs> (cr));
             break;
         case 2:     // CLTS
-            current->regs.write_cr<Vmcs> (cr, current->regs.read_cr<Vmcs> (cr) & ~Cpu::CR0_TS);
+            current->regs.write_cr<Vmcs> (cr, current->regs.read_cr<Vmcs> (cr) & ~CR0_TS);
             break;
         default:
             UNREACHED;

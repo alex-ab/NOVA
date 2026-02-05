@@ -273,7 +273,7 @@ void Sc::free(Rcu_elem * a)
 
     if (s->time > s->time_m) {
         assert(s->cpu < sizeof(killed_time) / sizeof(killed_time[0]));
-        Atomic::add(killed_time[s->cpu], s->time - s->time_m);
+        Atomic_legacy::add(killed_time[s->cpu], s->time - s->time_m);
     }
 
     delete s;
@@ -290,7 +290,7 @@ void Sc::free_xcpu(Rcu_elem * a)
 
     assert(s->cpu < sizeof(cross_time) / sizeof(cross_time[0]));
 
-    Atomic::add(cross_time[s->cpu], s->time);
+    Atomic_legacy::add(cross_time[s->cpu], s->time);
 
     delete s;
 }

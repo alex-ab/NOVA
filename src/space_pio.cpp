@@ -44,9 +44,9 @@ void Space_pio::update (Quota &quota, bool host, mword idx, mword attr)
     mword *m = static_cast<mword *>(Buddy::phys_to_ptr (walk (quota, host, idx)));
 
     if (attr)
-        Atomic::clr_mask (*m, idx_to_mask (idx));
+        Atomic_legacy::clr_mask (*m, idx_to_mask (idx));
     else
-        Atomic::set_mask (*m, idx_to_mask (idx));
+        Atomic_legacy::set_mask (*m, idx_to_mask (idx));
 }
 
 bool Space_pio::update (Quota &quota, Mdb &mdb, Memattr, mword r)

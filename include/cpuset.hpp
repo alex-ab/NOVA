@@ -61,17 +61,17 @@ class Cpuset
 
         ALWAYS_INLINE
         inline bool set (unsigned const cpu) {
-            return !Atomic::test_set_bit (value(cpu), bit_cpu(cpu)); }
+            return !Atomic_legacy::test_set_bit (value(cpu), bit_cpu(cpu)); }
 
         ALWAYS_INLINE
         inline void clr (unsigned const cpu) {
-            Atomic::clr_mask (value(cpu), 1UL << bit_cpu(cpu)); }
+            Atomic_legacy::clr_mask (value(cpu), 1UL << bit_cpu(cpu)); }
 
         ALWAYS_INLINE
         inline void merge (Cpuset const &s)
         {
             for (unsigned i = 0; i < sizeof(raw) / sizeof(raw[0]); i++)
-                Atomic::set_mask (  value(i * CPUS_PER_VALUE),
-                                  s.value(i * CPUS_PER_VALUE));
+                Atomic_legacy::set_mask (  value(i * CPUS_PER_VALUE),
+                                         s.value(i * CPUS_PER_VALUE));
         }
 };

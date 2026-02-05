@@ -26,14 +26,14 @@
 
 size_t Vtlb::gwalk (Exc_regs *regs, mword gla, mword &gpa, mword &attr, mword &error)
 {
-    if (EXPECT_FALSE (!(regs->cr0_shadow & Cpu::CR0_PG))) {
+    if (EXPECT_FALSE (!(regs->cr0_shadow & CR0_PG))) {
         gpa = gla;
         return ~0UL;
     }
 
-    bool pse = regs->cr4_shadow & (Cpu::CR4_PSE | Cpu::CR4_PAE);
-    bool pge = regs->cr4_shadow &  Cpu::CR4_PGE;
-    bool wp  = regs->cr0_shadow &  Cpu::CR0_WP;
+    bool pse = regs->cr4_shadow & (CR4_PSE | CR4_PAE);
+    bool pge = regs->cr4_shadow &  CR4_PGE;
+    bool wp  = regs->cr0_shadow &  CR0_WP;
 
     unsigned lev = 2;
 

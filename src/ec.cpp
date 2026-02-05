@@ -66,7 +66,7 @@ Ec::Ec (Pd *own, mword sel, Pd *p, void (*f)(), unsigned c, unsigned e, mword u,
         regs.ds  = SEL_USER_DATA;
         regs.es  = SEL_USER_DATA;
         regs.ss  = SEL_USER_DATA;
-        regs.REG(fl) = Cpu::EFL_IF;
+        regs.REG(fl) = RFL_IF;
 
         if (glb)
             regs.REG(sp) = s;
@@ -198,7 +198,7 @@ Ec::~Ec()
         Fpu::destroy(fpu, *pd);
 
     if (this->time > this->time_m)
-        Atomic::add(Ec::killed_time[this->cpu], this->time - this->time_m);
+        Atomic_legacy::add(Ec::killed_time[this->cpu], this->time - this->time_m);
 
     if (utcb) {
         Utcb::destroy(utcb, pd->quota);
@@ -259,7 +259,7 @@ void Ec::handle_hazard (mword hzd, void (*func)())
         if (func == ret_user_sysexit)
             current->redirect_to_iret();
 
-        current->regs.dst_portal = Cpu::EXC_DB;
+        current->regs.dst_portal = EXC_DB;
         send_msg<ret_user_iret>();
     }
 
@@ -605,7 +605,7 @@ void Ec::xcpu_return()
     auto cur = Sc::schedule_wo_activate (true, true);
 
     /* keep track of time spent on this (remote) CPU */
-    Atomic::add(Sc::cross_time[old->cpu], old->time);
+    Atomic_legacy::add(Sc::cross_time[old->cpu], old->time);
     old->time = 0;
 
     /* wake original caller of remote CPU */

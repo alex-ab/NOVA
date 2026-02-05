@@ -35,7 +35,7 @@ class Refcount
         inline bool add_ref()
         {
             for (uint32 r; (r = ref); )
-                if (Atomic::cmp_swap (ref, r, r + 1))
+                if (Atomic_legacy::cmp_swap (ref, r, r + 1))
                     return true;
 
             return false;
@@ -44,7 +44,7 @@ class Refcount
         ALWAYS_INLINE
         inline bool del_ref()
         {
-            return Atomic::sub (ref, 1U) == 0;
+            return Atomic_legacy::sub (ref, 1U) == 0;
         }
 
         ALWAYS_INLINE

@@ -171,10 +171,10 @@ class Cpu_regs : public Exc_regs
         inline mword hazard() const { return hzd; }
 
         ALWAYS_INLINE
-        inline void set_hazard (mword h) { Atomic::set_mask (hzd, h); }
+        inline void set_hazard (mword h) { Atomic_legacy::set_mask (hzd, h); }
 
         ALWAYS_INLINE
-        inline void clr_hazard (mword h) { Atomic::clr_mask (hzd, h); }
+        inline void clr_hazard (mword h) { Atomic_legacy::clr_mask (hzd, h); }
 
         ALWAYS_INLINE
         inline void add_tsc_offset (uint64 tsc)

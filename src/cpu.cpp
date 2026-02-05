@@ -281,7 +281,7 @@ void Cpu::setup_msr()
 #else
     Msr::write (Msr::IA32_STAR,  static_cast<mword>(SEL_USER_CODE) << 48 | static_cast<mword>(SEL_KERN_CODE) << 32);
     Msr::write (Msr::IA32_LSTAR, reinterpret_cast<mword>(&entry_sysenter));
-    Msr::write (Msr::IA32_SFMASK, Cpu::EFL_DF | Cpu::EFL_IF | Cpu::EFL_NT | Cpu::EFL_TF);
+    Msr::write (Msr::IA32_SFMASK, RFL_DF | RFL_IF | RFL_NT | RFL_TF);
 #endif
     }
 
@@ -327,7 +327,7 @@ void Cpu::setup_pcid()
     if (EXPECT_FALSE (!feature (Feature::PCID)))
         return;
 
-    set_cr4 (get_cr4() | Cpu::CR4_PCIDE);
+    set_cr4 (get_cr4() | CR4_PCIDE);
 }
 
 void Cpu::init(bool resume)
@@ -394,10 +394,10 @@ void Cpu::init(bool resume)
 
     mword cr4 = get_cr4();
 
-    if (EXPECT_TRUE (feature (SMEP))) cr4 |= Cpu::CR4_SMEP;
-    if (EXPECT_TRUE (feature (SMAP))) cr4 |= Cpu::CR4_SMAP;
+    if (EXPECT_TRUE (feature (SMEP))) cr4 |= CR4_SMEP;
+    if (EXPECT_TRUE (feature (SMAP))) cr4 |= CR4_SMAP;
 #ifdef __x86_64__
-    if (EXPECT_TRUE (feature (XSAVE))) cr4 |= Cpu::CR4_OSXSAVE;
+    if (EXPECT_TRUE (feature (XSAVE))) cr4 |= CR4_OSXSAVE;
 #else
     Cpu::defeature (Cpu::XSAVE);
 #endif
@@ -409,8 +409,8 @@ void Cpu::init(bool resume)
         Fpu::probe();
 
         /* XSAVE may be disabled by FPU::probe if state is too large */
-        if (cr4 & Cpu::CR4_OSXSAVE && !feature(Feature::XSAVE)) {
-            cr4 &= ~mword(Cpu::CR4_OSXSAVE);
+        if (cr4 & CR4_OSXSAVE && !feature(Feature::XSAVE)) {
+            cr4 &= ~mword(CR4_OSXSAVE);
             set_cr4 (cr4);
         }
     }
@@ -436,7 +436,7 @@ void Cpu::init(bool resume)
            Cpu::feature (Cpu::Feature::MONITOR_MWAIT) ? "MWAIT" : "HLT",
            Cpu::feature (Cpu::FEAT_MWAIT_EXT) ? "+E" : "",
            Cpu::feature (Cpu::FEAT_MWAIT_IRQ) ? "+I" : "",
-           cr4 & Cpu::CR4_OSXSAVE ? " XS" : "",
+           cr4 & CR4_OSXSAVE ? " XS" : "",
            Lapic::x2apic ? " X2" : "",
            Cpu::feature (Cpu::TME) ? " TME" : "");
 
