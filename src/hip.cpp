@@ -31,6 +31,7 @@
 #include "acpi_rsdp.hpp"
 #include "acpi.hpp"
 #include "string.hpp"
+#include "gsi.hpp"
 
 extern char _mempool_e;
 
@@ -277,6 +278,11 @@ void Hip::add_check()
     }
 
     hg.with_hip([](auto &hip) {
+
+        for (unsigned i = 0; i < NUM_GSI; i++) {
+            if (Gsi::gsi_table[i].ioapic)
+                hip.sel_msi = i + 1;
+        }
 
         hip.freq_tsc = Lapic::freq_tsc;
 

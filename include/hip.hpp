@@ -80,10 +80,11 @@ class Hip
         uint32  sel_exc;                // 0x1c
         uint32  sel_vmi;                // 0x20
         uint32  sel_gsi;                // 0x24
-        uint32  cfg_page;               // 0x28
-        uint32  cfg_utcb;               // 0x2c
-        uint32  freq_tsc;               // 0x30
-        uint32  reserved;               // 0x34
+        uint32  sel_msi;                // 0x28
+        uint32  cfg_page;               // 0x2c
+        uint32  cfg_utcb;               // 0x30
+        uint32  freq_tsc;               // 0x34
+        uint32  reserved;               // 0x38
         Hip_cpu cpu_desc[NUM_CPU];
         Hip_mem mem_desc[];
 
