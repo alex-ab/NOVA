@@ -58,6 +58,9 @@ void bootstrap()
         if (Cpu::bsp)
             Lapic::ap_code_cleanup();
 
+        /* handle pending remote SC queue operation */
+        Sc::rrq_handler();
+
         Sc::schedule();
     }
 
