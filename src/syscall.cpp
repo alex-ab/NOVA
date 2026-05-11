@@ -673,6 +673,9 @@ void Ec::sys_misc()
     switch (s->flags()) {
     case Sys_misc::SYS_ACPI_SUSPEND: {
 
+        if (!Cpu::bsp)
+            sys_finish<Sys_regs::BAD_CPU>();
+
         Capability cap = Space_obj::lookup (s->pd_snd());
         if (!Ec::auth_suspend || cap.obj() != Ec::auth_suspend)
             sys_finish<Sys_regs::BAD_CAP>();
