@@ -263,7 +263,11 @@ bool Acpi::suspend(uint8 const sleep_type_a, uint8 const sleep_type_b)
     vector.x_firmware_waking_vector = 0;
 
     /* switch off triggers which cause immediate wakeup */
-    write (PM1_STS, PM1_STS_WAKE | PM1_STS_PWRBTN | PM1_STS_SLPBTN);
+    write (PM1_ENA, 0);
+    write (PM1_STS, PM1_STS_WAKE | ((PM1_STS_PWRBTN | PM1_STS_SLPBTN | PM1_STS_RTC) & read(PM1_STS)));
+
+    clear (GPE0_ENA);
+    clear (GPE1_ENA);
     clear (GPE0_STS);
     clear (GPE1_STS);
 

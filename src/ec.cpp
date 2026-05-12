@@ -653,7 +653,7 @@ void Ec::hlt_prepare()
 
     current->flush_fpu();
 
-    if (Cpu::id && !current->idle_ec()) {
+    if (!Cpu::bsp && !current->idle_ec()) {
         if (current->vcpu()) {
             if ((Hip::feature() & Hip::FEAT_VMX) && current->regs.vmcs_state) current->cont = ret_user_vmresume;
             if ((Hip::feature() & Hip::FEAT_SVM) && current->regs.vmcb_state) current->cont = ret_user_vmrun;
