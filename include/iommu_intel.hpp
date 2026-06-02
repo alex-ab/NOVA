@@ -58,7 +58,7 @@ class Dmar_qi_tlb : public Dmar_qi
 class Dmar_qi_iec : public Dmar_qi
 {
     public:
-        Dmar_qi_iec() : Dmar_qi (0x4ULL | 1UL << 4) {}
+        Dmar_qi_iec(uint16 idx) : Dmar_qi (0x4ULL | 1UL << 4 | uint64(idx) << 32) {}
 };
 
 class Dmar_ctx
@@ -260,6 +260,16 @@ class Dmar : public Iommu::Interface, public List<Dmar>
             }
         }
 
+        ALWAYS_INLINE
+        inline void flush_iec(uint16 idx)
+        {
+            if (!qi())
+                return;
+
+            qi_submit (Dmar_qi_iec(idx));
+            qi_wait();
+        }
+
         void fault_handler();
 
 
@@ -309,11 +319,7 @@ class Dmar : public Iommu::Interface, public List<Dmar>
             }
         }
 
-        ALWAYS_INLINE
-        static inline void set_irt (unsigned i, unsigned rid, unsigned cpu, unsigned vec, unsigned trg)
-        {
-            irt[i].set (1ULL << 18 | rid, static_cast<uint64>(cpu) << 40 | vec << 16 | trg << 4 | 1);
-        }
+        static void set_irt (unsigned i, unsigned rid, unsigned cpu, unsigned vec, unsigned trg);
 
         ALWAYS_INLINE
         static bool ire() { return gcmd & GCMD_IRE; }

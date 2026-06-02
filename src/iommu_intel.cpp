@@ -185,3 +185,14 @@ void Dmar::flush_pgt (uint16 const rid, Pd &p)
 
     iommu->flush_ctx(Dmar_qi::Mode::FLUSH_BY_DID, p.dom_id);
 }
+
+void Dmar::set_irt (unsigned i, unsigned rid, unsigned cpu, unsigned vec, unsigned trg)
+{
+    irt[i].set (1ULL << 18 | rid, static_cast<uint64>(cpu) << 40 | vec << 16 | trg << 4 | 1);
+
+    auto iommu = lookup(uint16_t(rid));
+    if (!iommu) return;
+
+    Lock_guard <Spinlock> guard (iommu->lock);
+    iommu->flush_iec(uint16(i));
+}
