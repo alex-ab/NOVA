@@ -199,7 +199,7 @@ class Lapic final
             if (freq_bus) {
                 uint64 now = time();
                 uint32 icr;
-                write (Reg32::TMR_ICR, tsc > now && (icr = static_cast<uint32>(tsc - now) / (freq_tsc / freq_bus)) > 0 ? icr : 1);
+                write (Reg32::TMR_ICR, tsc > now && (icr = static_cast<uint32>((tsc - now) * freq_bus / freq_tsc)) > 0 ? icr : 1);
             } else
                 Msr::write (Msr::Reg64::IA32_TSC_DEADLINE, tsc);
         }
