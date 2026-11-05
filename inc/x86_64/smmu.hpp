@@ -145,7 +145,8 @@ class Smmu : public List<Smmu>, protected Mmio
                     if (!noir)
                         Hip::set_feature (Hip_arch::Feature::SMMU_INT);
                 }
-            }
+            } else
+                noir = true; /* forced no use of SMMU implies no irq remapping */
 
             return ret;
         }
