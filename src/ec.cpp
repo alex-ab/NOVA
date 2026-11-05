@@ -257,6 +257,10 @@ void Ec::create_root()
     ec->exc_regs().sp() = Space_hst::info_addr();
     ec->cont = Ec_arch::ret_user_hypercall;
 
+    /* make UTCB of first EC mappable by root task to desired place */
+    hst->update (Space_hst::utcb_addr(), Kmem::ptr_to_phys (ec->get_utcb()), 0,
+                 Paging::Permissions (/* Paging::K |*/ Paging::U | Paging::R | Paging::W), Memattr::ram());
+
     trace (TRACE_ROOT, "ROOT: Invoking entry point %#lx %s measuring %#lx bytes", entry, m ? "after" : "without", msize);
 
     Scheduler::unblock (sc);
