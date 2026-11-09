@@ -21,6 +21,9 @@
 
 bool Acpi_table_ivrs::Ivhd::parse (size_t hdr, uint64_t efr1, uint64_t efr2) const
 {
+    if (Cmdline::nosmmu)
+        return false;
+
     // Already enumerated by another IVHD
     if (Smmu::lookup_phys (phys)) [[unlikely]]
         return true;

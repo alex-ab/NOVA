@@ -32,6 +32,9 @@ bool Acpi_table_dmar::Remapping_drhd::parse() const
     if (len < sizeof (*this)) [[unlikely]]
         return false;
 
+    if (Cmdline::nosmmu)
+        return false;
+
     auto const smmu { Smmu_itl::create (phys, PAGE_SIZE (0) << (ord & BIT_RANGE (3, 0)), Pci::pci (seg, 0)) };
     if (!smmu) [[unlikely]]
         panic ("SMMU allocation failed");
