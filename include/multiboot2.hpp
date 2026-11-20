@@ -38,6 +38,7 @@ namespace Multiboot2
         TAG_FB        = 8,
         TAG_SYSTAB_64 = 12,
         TAG_ACPI_2    = 15,
+        TAG_GENODE    = 0xaffe,
     };
 
 };
@@ -83,9 +84,9 @@ class Multiboot2::Tag
             return reinterpret_cast<Systab_64 *>(reinterpret_cast<mword>(this + 1));
         }
 
-        inline Module const * module() const
+        inline Module const * module(uint32 t = TAG_MODULE) const
         {
-            if (type != TAG_MODULE)
+            if (type != t)
                 return nullptr;
 
             return reinterpret_cast<Module *>(reinterpret_cast<mword>(this + 1));

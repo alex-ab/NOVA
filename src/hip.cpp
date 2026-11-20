@@ -112,6 +112,15 @@ void Hip::build_mbi1(Hip_guard &hg, mword addr)
         for (unsigned i = 0; i < mods_count; i++, mod++)
             add_mod (hg, mod, mod->cmdline);
     }
+
+    if (mbi->drives_length && mbi->drives_addr) {
+        hg.with_mem_desc([&](auto &mem) {
+            mem.addr = mbi->drives_addr;
+            mem.size = mbi->drives_length;
+            mem.type = Multiboot2::TAG_GENODE;
+            mem.aux  = 0;
+        });
+    }
 }
 
 void Hip::build_mbi2(Hip_guard &hg, mword const addr)
@@ -147,6 +156,16 @@ void Hip::build_mbi2(Hip_guard &hg, mword const addr)
                 mem.type  = Hip_mem::MB2_FB;
             });
         }
+
+        if (tag->type == Multiboot2::TAG_GENODE) {
+            hg.with_mem_desc([&](auto &mem) {
+                mem.addr = tag->module(Multiboot2::TAG_GENODE)->s_addr;
+                mem.size = tag->module(Multiboot2::TAG_GENODE)->e_addr -
+                           tag->module(Multiboot2::TAG_GENODE)->s_addr + 1;
+                mem.type = Multiboot2::TAG_GENODE;
+                mem.aux  = 0;
+            });
+        }
     });
 }
 
@@ -165,12 +184,12 @@ void Hip::add_mod(Hip_guard &hg, auto const * mod, uint32 aux)
 {
     if (!root_addr) {
         root_addr = mod->s_addr;
-        root_size = mod->e_addr - mod->s_addr;
+        root_size = mod->e_addr - mod->s_addr + 1;
     }
 
     hg.with_mem_desc([&](auto &mem) {
         mem.addr = mod->s_addr;
-        mem.size = mod->e_addr - mod->s_addr;
+        mem.size = mod->e_addr - mod->s_addr + 1;
         mem.type = Hip_mem::MB_MODULE;
         mem.aux  = aux;
     });
