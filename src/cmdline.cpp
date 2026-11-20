@@ -38,6 +38,8 @@ bool Cmdline::logmem;
 bool Cmdline::fpu_lazy;
 bool Cmdline::hlt;
 
+uint16 Cmdline::serial_ioport;
+
 struct Cmdline::param_map Cmdline::map[] INITDATA =
 {
     { "iommu_amd",   &Cmdline::iommu_amd   },
@@ -75,14 +77,62 @@ char const *Cmdline::get_arg (char const **line, unsigned &len)
     return arg;
 }
 
+static uint16 str_to_hex(char value)
+{
+    switch(value) {
+    case '0' : return  0;
+    case '1' : return  1;
+    case '2' : return  2;
+    case '3' : return  3;
+    case '4' : return  4;
+    case '5' : return  5;
+    case '6' : return  6;
+    case '7' : return  7;
+    case '8' : return  8;
+    case '9' : return  9;
+    case 'a' : return 10;
+    case 'b' : return 11;
+    case 'c' : return 12;
+    case 'd' : return 13;
+    case 'e' : return 14;
+    case 'f' : return 15;
+    case 'A' : return 10;
+    case 'B' : return 11;
+    case 'C' : return 12;
+    case 'D' : return 13;
+    case 'E' : return 14;
+    case 'F' : return 15;
+    default  : return 65535;
+    }
+}
+
 void Cmdline::init (char const * line)
 {
     char const *arg;
     unsigned len;
 
-    while ((arg = get_arg (&line, len)))
+    while ((arg = get_arg (&line, len))) {
         for (unsigned i = 0; i < sizeof map / sizeof *map; i++) {
             if (strmatch (map[i].arg, arg, len))
                 *map[i].ptr = true;
+
+            if (map[i].ptr && strmatch(map[i].arg, "serial", len)) {
+                auto arg_next = get_arg (&line, len);
+
+                if (len > 2 && strmatch("0x", arg_next, 2)) {
+                    uint16 value { };
+
+                    for (auto j = len - 1, step = 0u; i > 2 && step < 16; j--, step += 4) {
+                        auto val = str_to_hex(arg_next[j]);
+                        if (val > 15) continue;
+
+                        value += uint16(str_to_hex(arg_next[j]) << step);
+                    }
+
+                    Cmdline::serial_ioport = value;
+                    arg = arg_next;
+                }
+            }
         }
+    }
 }

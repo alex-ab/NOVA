@@ -28,13 +28,10 @@ INIT_PRIORITY (PRIO_CONSOLE) Console_serial Console_serial::con;
 
 Console_serial::Console_serial()
 {
-    if (!Cmdline::serial)
+    if (!Cmdline::serial || !Cmdline::serial_ioport)
         return;
 
-    char *mem = static_cast<char *>(Hpt::remap (Pd::kern.quota, 0));
-    if (!(base = *reinterpret_cast<uint16 *>(mem + 0x400)) &&
-        !(base = *reinterpret_cast<uint16 *>(mem + 0x402)))
-        return;
+    base = Cmdline::serial_ioport;
 
     reenable();
 

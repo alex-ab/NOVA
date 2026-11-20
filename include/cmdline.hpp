@@ -53,6 +53,8 @@ class Cmdline
         static bool fpu_lazy;
         static bool hlt;
 
+        static uint16 serial_ioport;
+
         INIT
         static void init (char const *);
 };
